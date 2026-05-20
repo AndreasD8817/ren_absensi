@@ -1,6 +1,6 @@
 <?php
 $nama_bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-$base_foto = BASE_URL . '/public/uploads/';
+$base_foto = BASE_URL . '/uploads/';
 ?>
 <!-- Halaman Absensi - Superadmin -->
 <div class="flex h-screen overflow-hidden bg-gray-50">
