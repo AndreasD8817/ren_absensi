@@ -28,7 +28,7 @@ class Pegawai extends Controller {
 
         // Ambil Pengumuman Aktif
         $db = (new Database())->getConnection();
-        $stmt_pengumuman = $db->query("SELECT * FROM pengumuman WHERE is_active = 1 ORDER BY created_at DESC");
+        $stmt_pengumuman = $db->query("SELECT id_pengumuman, id_cabang, judul, isi_pengumuman AS isi, is_active, created_at FROM pengumuman WHERE is_active = 1 ORDER BY created_at DESC");
         $data['pengumuman'] = $stmt_pengumuman->fetchAll();
 
         $this->view('layouts/header', $data);
@@ -82,8 +82,10 @@ class Pegawai extends Controller {
         // Pilih fungsi simpan berdasarkan mode absen
         if ($mode === 'pulang') {
             $result = $absensiModel->simpanAbsenPulang($id_user, $lat, $lng, $nama_file, $timezone);
+            if ($result['status']) catat_log('ABSEN_PULANG', 'Absensi', 'Melakukan absen pulang');
         } else {
             $result = $absensiModel->simpanAbsenMasuk($id_user, $lat, $lng, $nama_file, $id_cabang, $timezone);
+            if ($result['status']) catat_log('ABSEN_MASUK', 'Absensi', 'Melakukan absen masuk');
         }
 
         echo json_encode([
@@ -129,6 +131,10 @@ class Pegawai extends Controller {
         $cutiModel = $this->model('Cuti');
         $result = $cutiModel->ajukanCuti($data_cuti);
         
+        if ($result['status']) {
+            catat_log('CREATE', 'Cuti', 'Mengajukan ' . $_POST['jenis'] . ' dari ' . $_POST['tanggal_mulai']);
+        }
+        
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -151,11 +157,76 @@ class Pegawai extends Controller {
 
         // Ambil detail User untuk ditampilkan di slip
         $userModel = $this->model('User');
-        $data['pegawai'] = $userModel->getById($id_user);
+        $data['pegawai'] = $userModel->getPegawaiById($id_user);
         
         $this->view('layouts/header', $data);
         $this->view('pegawai/penggajian', $data);
         $this->view('layouts/footer');
+    }
+
+    public function detail_denda() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') { $this->jsonError('Metode tidak valid.'); return; }
+        
+        $id_user = $_SESSION['user']['id_user'];
+        $bulan   = $_GET['bulan'] ?? date('n');
+        $tahun   = $_GET['tahun'] ?? date('Y');
+
+        $userModel = $this->model('User');
+        $user = $userModel->getPegawaiById($id_user);
+
+        $cabangModel = $this->model('Cabang');
+        $cabang = $cabangModel->getById($user['id_cabang']);
+
+        $absensiModel = $this->model('Absensi');
+        $detail = $absensiModel->getDetailHarianUser($id_user, $bulan, $tahun);
+
+        $penggajianModel = $this->model('Penggajian');
+        
+        $rincian = [];
+        $total_denda = 0;
+        foreach ($detail as $d) {
+            // Cek Keterlambatan
+            if ($d['status'] === 'telat') {
+                $denda_per_kejadian = $penggajianModel->hitungDendaTelat($d['menit_terlambat'], $cabang);
+                $d_telat = $d;
+                $d_telat['jenis_denda'] = "Terlambat ({$d['menit_terlambat']} menit)";
+                $d_telat['denda'] = $denda_per_kejadian;
+                $total_denda += $denda_per_kejadian;
+                $rincian[] = $d_telat;
+            }
+            // Cek Lupa Absen Pulang
+            if ($d['jam_masuk'] !== null && $d['jam_pulang'] === null) {
+                $d_lupa = $d;
+                $d_lupa['jenis_denda'] = "Lupa Absen Pulang";
+                $d_lupa['denda'] = $cabang['denda_tidak_absen_pulang'];
+                $total_denda += $cabang['denda_tidak_absen_pulang'];
+                $rincian[] = $d_lupa;
+            }
+        }
+
+        // Tambahkan Rangkuman Alfa
+        $ringkasan = $penggajianModel->getRingkasanAbsensi($bulan, $tahun, $user['id_cabang']);
+        $total_alfa = 0;
+        foreach($ringkasan as $r) {
+            if ($r['id_user'] == $id_user) {
+                $total_alfa = $r['total_alfa'] ?? 0;
+                break;
+            }
+        }
+
+        if ($total_alfa > 0) {
+            $denda_alfa_total = $total_alfa * $cabang['denda_alfa'];
+            $total_denda += $denda_alfa_total;
+            $rincian[] = [
+                'tanggal' => null,
+                'jenis_denda' => "Alfa / Tidak Masuk Kerja ($total_alfa Hari)",
+                'jam_masuk' => '-',
+                'denda' => $denda_alfa_total,
+                'is_alfa_summary' => true
+            ];
+        }
+
+        echo json_encode(['status' => 'success', 'data' => $rincian, 'total_denda' => $total_denda]);
     }
 
     // ==================== LEMBUR ====================
@@ -200,6 +271,10 @@ class Pegawai extends Controller {
 
         $lemburModel = $this->model('Lembur');
         $result = $lemburModel->ajukanLembur($data_lembur);
+        
+        if ($result['status']) {
+            catat_log('CREATE', 'Lembur', 'Mengajukan lembur pada ' . $_POST['tanggal']);
+        }
         
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }

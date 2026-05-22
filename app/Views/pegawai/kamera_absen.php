@@ -185,6 +185,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
+                'csrf_token': '<?= csrf_token() ?>',
                 'latitude': latitude,
                 'longitude': longitude,
                 'foto': fotoBase64,

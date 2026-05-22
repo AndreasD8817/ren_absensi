@@ -37,7 +37,7 @@
                                         <?= date('d M Y', strtotime($l['tanggal'])) ?>
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-gray-600 font-medium"><?= htmlspecialchars($l['keterangan']) ?></td>
+                                <td class="px-6 py-4 text-gray-600 font-medium"><?= esc($l['keterangan']) ?></td>
                                 <td class="px-6 py-4 text-center">
                                     <?php if ($l['status'] === 'libur_lokal'): ?>
                                         <span class="px-3 py-1 bg-green-100 text-green-700 text-[11px] font-bold rounded-full">Libur Lokal (Dikecualikan Alfa)</span>
@@ -75,6 +75,7 @@
             </button>
         </div>
         <form id="form-libur" onsubmit="simpanLibur(event)" class="p-6">
+    <?= csrf_field() ?>
             <input type="hidden" name="id_override" id="id_override">
             
             <div class="mb-4">
@@ -174,7 +175,7 @@
             confirmButtonText: 'Ya, Hapus!'
         }).then(async (result) => {
             if (result.isConfirmed) {
-                const resp = await fetch('<?= BASE_URL ?>/admincabang/hapus_libur_lokal/' + id, { method: 'POST' });
+                const resp = await fetch('<?= BASE_URL ?>/admincabang/hapus_libur_lokal/' + id, { method: 'POST', body: new URLSearchParams({ csrf_token: '<?= csrf_token() ?>' }) });
                 const data = await resp.json();
                 if (data.status === 'success') location.reload();
                 else Swal.fire('Error', data.message, 'error');

@@ -8,28 +8,33 @@ class Penggajian {
     }
 
     // Mengambil ringkasan absensi pegawai untuk bulan & tahun tertentu
-    public function getRingkasanAbsensi($bulan, $tahun) {
+    public function getRingkasanAbsensi($bulan, $tahun, $id_cabang = null) {
+        $where_cabang = $id_cabang ? " AND u.id_cabang = :id_cabang " : "";
         // 1. Tarik ringkasan dasar (tanpa total_alfa)
         $stmt = $this->db->prepare("
             SELECT 
                 u.id_user, u.nip, u.nama_lengkap, u.jabatan, u.gaji_pokok, u.id_cabang,
-                u.status_pajak, u.tunj_jabatan, u.tunj_transportasi, u.tunj_makan, u.tunj_kehadiran, u.tunj_lainnya,
-                c.nama_cabang, c.denda_1_5, c.denda_6_10, c.denda_11_15, c.denda_16_30, c.denda_31_60, c.denda_alfa,
+                u.status_pajak, u.saldo_awal_pph21, u.tunj_jabatan, u.tunj_transportasi, u.tunj_makan, u.tunj_kehadiran, u.tunj_lainnya,
+                c.nama_cabang, c.denda_1_5, c.denda_6_10, c.denda_11_15, c.denda_16_30, c.denda_31_60, c.denda_alfa, c.denda_tidak_absen_pulang,
                 c.tarif_lembur_per_jam,
                 COUNT(a.id_absensi) AS total_hadir,
                 SUM(CASE WHEN a.status = 'telat' THEN 1 ELSE 0 END) AS total_telat,
-                SUM(a.menit_terlambat) AS total_menit_terlambat
+                SUM(a.menit_terlambat) AS total_menit_terlambat,
+                SUM(CASE WHEN a.id_absensi IS NOT NULL AND a.jam_pulang IS NULL THEN 1 ELSE 0 END) AS total_lupa_pulang
             FROM users u
             JOIN cabang c ON u.id_cabang = c.id_cabang
             LEFT JOIN absensi a ON a.id_user = u.id_user
                 AND MONTH(a.tanggal) = :bulan
                 AND YEAR(a.tanggal) = :tahun
-            WHERE u.role = 'pegawai' AND u.is_active = 1
+            WHERE u.role = 'pegawai' AND u.is_active = 1 $where_cabang
             GROUP BY u.id_user
             ORDER BY c.nama_cabang, u.nama_lengkap
         ");
         $stmt->bindParam(':bulan', $bulan, PDO::PARAM_INT);
         $stmt->bindParam(':tahun', $tahun, PDO::PARAM_INT);
+        if ($id_cabang) {
+            $stmt->bindParam(':id_cabang', $id_cabang, PDO::PARAM_INT);
+        }
         $stmt->execute();
         $pegawai = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -152,15 +157,24 @@ class Penggajian {
         return $stmt->fetch();
     }
 
-    // Generate dan simpan penggajian bulanan semua pegawai
-    public function generateGaji($bulan, $tahun) {
+    // Generate dan simpan penggajian bulanan pegawai
+    public function generateGaji($bulan, $tahun, $id_cabang = null) {
         // Hapus draft yang sudah ada (supaya tombol Re-generate berfungsi memperbarui data)
-        $stmt_del = $this->db->prepare("DELETE FROM penggajian_bulanan WHERE bulan=:bulan AND tahun=:tahun AND status='draft'");
+        if ($id_cabang) {
+            $stmt_del = $this->db->prepare("
+                DELETE p FROM penggajian_bulanan p 
+                JOIN users u ON p.id_user = u.id_user 
+                WHERE p.bulan=:bulan AND p.tahun=:tahun AND p.status='draft' AND u.id_cabang=:id_cabang
+            ");
+            $stmt_del->bindParam(':id_cabang', $id_cabang, PDO::PARAM_INT);
+        } else {
+            $stmt_del = $this->db->prepare("DELETE FROM penggajian_bulanan WHERE bulan=:bulan AND tahun=:tahun AND status='draft'");
+        }
         $stmt_del->bindParam(':bulan', $bulan, PDO::PARAM_INT);
         $stmt_del->bindParam(':tahun', $tahun, PDO::PARAM_INT);
         $stmt_del->execute();
 
-        $data_absensi = $this->getRingkasanAbsensi($bulan, $tahun);
+        $data_absensi = $this->getRingkasanAbsensi($bulan, $tahun, $id_cabang);
         $berhasil = 0;
 
         foreach ($data_absensi as $p) {
@@ -189,6 +203,12 @@ class Penggajian {
             }
 
             $total_denda_alfa = ($p['total_alfa'] ?? 0) * $p['denda_alfa'];
+            
+            // Hitung Denda Lupa Absen Pulang
+            $total_denda_lupa_pulang = ($p['total_lupa_pulang'] ?? 0) * $p['denda_tidak_absen_pulang'];
+            
+            // Total Potongan Denda Kehadiran (Telat + Alfa + Lupa Pulang)
+            $total_potongan_telat_alfa = $total_denda_telat + $total_denda_alfa + $total_denda_lupa_pulang;
 
             // Hitung Lembur (Tahap 5)
             $stmt_lembur = $this->db->prepare("SELECT COALESCE(SUM(durasi_jam), 0) FROM pengajuan_lembur WHERE id_user=:id_user AND MONTH(tanggal)=:bulan AND YEAR(tanggal)=:tahun AND status='approved'");
@@ -198,6 +218,14 @@ class Penggajian {
             $stmt_lembur->execute();
             $jam_lembur = (float)$stmt_lembur->fetchColumn();
             $nilai_overtime = $jam_lembur * ($p['tarif_lembur_per_jam'] ?? 0);
+
+            // Ambil Bonus/THR
+            $stmt_bonus = $this->db->prepare("SELECT COALESCE(SUM(nominal), 0) FROM bonus_thr_bulanan WHERE id_user=:id_user AND bulan=:bulan AND tahun=:tahun");
+            $stmt_bonus->bindParam(':id_user', $p['id_user'], PDO::PARAM_INT);
+            $stmt_bonus->bindParam(':bulan', $bulan, PDO::PARAM_INT);
+            $stmt_bonus->bindParam(':tahun', $tahun, PDO::PARAM_INT);
+            $stmt_bonus->execute();
+            $nilai_bonus = (float)$stmt_bonus->fetchColumn();
 
             $gaji_pokok = $p['gaji_pokok'];
             $total_tunjangan_tetap = $p['tunj_jabatan'] + $p['tunj_transportasi'] + $p['tunj_makan'] + $p['tunj_kehadiran'] + $p['tunj_lainnya'];
@@ -223,7 +251,7 @@ class Penggajian {
             // PPh 21 CALCULATION (Skema TER PP 58 Tahun 2023)
             // -------------------------------------------------------------
             // 1. Penghasilan Bruto (Gaji Pokok + Semua Tunjangan + BPJS Kes & Jamsostek yang dibayar perusahaan kecuali JHT & JP)
-            $pendapatan_bruto = $basis_bpjs_jamsostek + $nilai_overtime + $tunj_jkk_024 + $tunj_jk_03 + $tunj_bpjs_kes_4;
+            $pendapatan_bruto = $basis_bpjs_jamsostek + $nilai_overtime + $nilai_bonus + $tunj_jkk_024 + $tunj_jk_03 + $tunj_bpjs_kes_4;
 
             $status_pajak = $p['status_pajak'] ?? 'TK/0';
             $pot_pph21 = 0;
@@ -275,8 +303,14 @@ class Penggajian {
                 $stmt_terbayar = $this->db->prepare("SELECT COALESCE(SUM(pot_pph21), 0) AS total_dibayar, COUNT(id_gaji) AS jml_bulan FROM penggajian_bulanan WHERE id_user = :id_user AND tahun = :tahun AND bulan < 12");
                 $stmt_terbayar->execute([':id_user' => $p['id_user'], ':tahun' => $tahun]);
                 $row_pajak = $stmt_terbayar->fetch(PDO::FETCH_ASSOC);
-                $pajak_sudah_dibayar = (float)$row_pajak['total_dibayar'];
+                
+                $saldo_awal_pajak = isset($p['saldo_awal_pph21']) ? (float)$p['saldo_awal_pph21'] : 0;
+                $pajak_sudah_dibayar = (float)$row_pajak['total_dibayar'] + $saldo_awal_pajak;
+                
                 $bulan_terbayar = (int)$row_pajak['jml_bulan'];
+                if ($saldo_awal_pajak > 0) {
+                    $bulan_terbayar += 1; // Flag agar bypass fallback hitung bulanan
+                }
 
                 if ($bulan_terbayar > 0) {
                     $pot_pph21 = $pph21_setahun - $pajak_sudah_dibayar;
@@ -289,28 +323,27 @@ class Penggajian {
 
             // Gaji bersih
             // Denda telat dan alfa tetap dipotong dari gaji yang ditransfer pusat
-            $total_potongan_pegawai = $pot_jht_2 + $pot_jp_1 + $pot_bpjs_kes_1 + $pot_pph21 + $total_denda_telat + $total_denda_alfa;
+            // Denda telat dan alfa tetap dipotong dari gaji yang ditransfer pusat
+            $total_potongan_pegawai = $pot_jht_2 + $pot_jp_1 + $pot_bpjs_kes_1 + $pot_pph21 + $total_potongan_telat_alfa;
             
-            $gaji_bersih = $basis_bpjs_jamsostek + $nilai_overtime - $total_potongan_pegawai;
+            $gaji_bersih = $basis_bpjs_jamsostek + $nilai_overtime + $nilai_bonus - $total_potongan_pegawai;
 
             $stmt = $this->db->prepare("
                 INSERT INTO penggajian_bulanan
                 (id_user, bulan, tahun, nilai_gaji_pokok, 
-                 nilai_tunj_jabatan, nilai_tunj_transportasi, nilai_tunj_makan, nilai_tunj_kehadiran, nilai_tunj_lainnya, nilai_overtime,
+                 nilai_tunj_jabatan, nilai_tunj_transportasi, nilai_tunj_makan, nilai_tunj_kehadiran, nilai_tunj_lainnya, nilai_bonus, nilai_overtime,
                  tunj_jht_37, tunj_jkk_024, tunj_jk_03, tunj_bpjs_kes_4, tunj_jp_2,
                  pot_jht_2, pot_bpjs_kes_1, pot_jp_1, pot_pph21,
-                 total_potongan_telat_alfa, denda_terlambat, denda_alfa, status_pajak_snapshot,
+                 total_potongan_telat_alfa, denda_terlambat, denda_alfa, denda_lupa_pulang, status_pajak_snapshot,
                  total_gaji_bersih, status)
                 VALUES 
                 (:id_user, :bulan, :tahun, :gaji_pokok, 
-                 :tunj_jabatan, :tunj_transportasi, :tunj_makan, :tunj_kehadiran, :tunj_lainnya, :nilai_overtime,
+                 :tunj_jabatan, :tunj_transportasi, :tunj_makan, :tunj_kehadiran, :tunj_lainnya, :nilai_bonus, :nilai_overtime,
                  :tunj_jht, :tunj_jkk, :tunj_jk, :tunj_bpjs, :tunj_jp,
                  :pot_jht, :pot_bpjs, :pot_jp, :pot_pph21,
-                 :total_potongan_telat_alfa, :denda_terlambat, :denda_alfa, :status_pajak,
+                 :total_potongan_telat_alfa, :denda_terlambat, :denda_alfa, :denda_lupa_pulang, :status_pajak,
                  :bersih, 'draft')
             ");
-            
-            $total_potongan_telat_alfa = $total_denda_telat + $total_denda_alfa;
             
             $stmt->bindParam(':id_user',  $p['id_user'], PDO::PARAM_INT);
             $stmt->bindParam(':bulan',    $bulan, PDO::PARAM_INT);
@@ -321,6 +354,7 @@ class Penggajian {
             $stmt->bindParam(':tunj_makan', $p['tunj_makan']);
             $stmt->bindParam(':tunj_kehadiran', $p['tunj_kehadiran']);
             $stmt->bindParam(':tunj_lainnya', $p['tunj_lainnya']);
+            $stmt->bindParam(':nilai_bonus', $nilai_bonus);
             $stmt->bindParam(':nilai_overtime', $nilai_overtime);
             $stmt->bindParam(':tunj_jht', $tunj_jht_37);
             $stmt->bindParam(':tunj_jkk', $tunj_jkk_024);
@@ -334,6 +368,7 @@ class Penggajian {
             $stmt->bindParam(':total_potongan_telat_alfa', $total_potongan_telat_alfa);
             $stmt->bindParam(':denda_terlambat', $total_denda_telat);
             $stmt->bindParam(':denda_alfa', $total_denda_alfa);
+            $stmt->bindParam(':denda_lupa_pulang', $total_denda_lupa_pulang);
             $stmt->bindParam(':status_pajak', $p['status_pajak']);
             $stmt->bindParam(':bersih',   $gaji_bersih);
             
@@ -346,7 +381,7 @@ class Penggajian {
     // Mengambil data penggajian yang sudah di-generate
     public function getDataGaji($bulan, $tahun) {
         $stmt = $this->db->prepare("
-            SELECT p.*, u.nip, u.nama_lengkap, u.jabatan, c.nama_cabang
+            SELECT p.*, u.nip, u.nama_lengkap, u.jabatan, u.id_cabang, c.nama_cabang
             FROM penggajian_bulanan p
             JOIN users u ON p.id_user = u.id_user
             JOIN cabang c ON u.id_cabang = c.id_cabang
@@ -360,22 +395,35 @@ class Penggajian {
     }
 
     // Publish semua gaji bulan ini
-    public function publishGaji($bulan, $tahun) {
+    public function publishGaji($bulan, $tahun, $id_cabang = null) {
+        $where_cabang = "";
+        if ($id_cabang && $id_cabang !== 'all') {
+            $where_cabang = " AND u.id_cabang = :id_cabang ";
+        }
+
         // 1. Ambil data draft yang memiliki potongan denda
         $stmt_draft = $this->db->prepare("
             SELECT p.id_gaji, p.id_user, u.id_cabang, p.total_potongan_telat_alfa, u.nama_lengkap 
             FROM penggajian_bulanan p
             JOIN users u ON p.id_user = u.id_user
-            WHERE p.bulan=:bulan AND p.tahun=:tahun AND p.status='draft' AND p.total_potongan_telat_alfa > 0
+            WHERE p.bulan=:bulan AND p.tahun=:tahun AND p.status='draft' AND p.total_potongan_telat_alfa > 0 $where_cabang
         ");
         $stmt_draft->bindParam(':bulan', $bulan, PDO::PARAM_INT);
         $stmt_draft->bindParam(':tahun', $tahun, PDO::PARAM_INT);
+        if ($id_cabang && $id_cabang !== 'all') {
+            $stmt_draft->bindParam(':id_cabang', $id_cabang, PDO::PARAM_INT);
+        }
         $stmt_draft->execute();
         $drafts = $stmt_draft->fetchAll();
 
         // 2. Catat denda sebagai pemasukan di kas cabang
         $tanggal_publish = date('Y-m-d');
         foreach ($drafts as $d) {
+            // Hapus log kas lama jika ada (mencegah duplikasi jika re-publish)
+            $stmt_del = $this->db->prepare("DELETE FROM kas_denda_cabang WHERE id_penggajian = :id_gaji");
+            $stmt_del->bindParam(':id_gaji', $d['id_gaji'], PDO::PARAM_INT);
+            $stmt_del->execute();
+
             $ket = "Potongan absen/telat: " . $d['nama_lengkap'] . " (" . str_pad($bulan, 2, '0', STR_PAD_LEFT) . "/$tahun)";
             $stmt_kas = $this->db->prepare("
                 INSERT INTO kas_denda_cabang (id_cabang, tanggal, jenis, nominal, keterangan, id_penggajian)
@@ -390,7 +438,17 @@ class Penggajian {
         }
 
         // 3. Update status menjadi published
-        $stmt = $this->db->prepare("UPDATE penggajian_bulanan SET status='published' WHERE bulan=:bulan AND tahun=:tahun AND status='draft'");
+        if ($id_cabang && $id_cabang !== 'all') {
+            $stmt = $this->db->prepare("
+                UPDATE penggajian_bulanan p
+                JOIN users u ON p.id_user = u.id_user
+                SET p.status='published' 
+                WHERE p.bulan=:bulan AND p.tahun=:tahun AND p.status='draft' AND u.id_cabang = :id_cabang
+            ");
+            $stmt->bindParam(':id_cabang', $id_cabang, PDO::PARAM_INT);
+        } else {
+            $stmt = $this->db->prepare("UPDATE penggajian_bulanan SET status='published' WHERE bulan=:bulan AND tahun=:tahun AND status='draft'");
+        }
         $stmt->bindParam(':bulan', $bulan, PDO::PARAM_INT);
         $stmt->bindParam(':tahun', $tahun, PDO::PARAM_INT);
         return $stmt->execute();

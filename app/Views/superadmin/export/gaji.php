@@ -12,6 +12,8 @@ $bulan_str = $nama_bulan[(int)$bulan];
 <html>
 <head>
     <title><?= $judul ?></title>
+    <!-- Favicon -->
+    <link rel="icon" href="<?= BASE_URL ?>/img/logo.png" type="image/png">
     <?php if ($format === 'pdf'): ?>
     <style>
         body { font-family: sans-serif; font-size: 10px; }
@@ -74,10 +76,10 @@ $bulan_str = $nama_bulan[(int)$bulan];
                 ?>
                 <tr>
                     <td><?= $no++ ?></td>
-                    <td><?= htmlspecialchars($g['nama_cabang']) ?></td>
-                    <td><?= htmlspecialchars($g['nip']) ?></td>
-                    <td><?= htmlspecialchars($g['nama_lengkap']) ?></td>
-                    <td><?= htmlspecialchars($g['jabatan']) ?></td>
+                    <td><?= esc($g['nama_cabang']) ?></td>
+                    <td><?= esc($g['nip']) ?></td>
+                    <td><?= esc($g['nama_lengkap']) ?></td>
+                    <td><?= esc($g['jabatan']) ?></td>
                     <td class="text-right"><?= number_format($g['nilai_gaji_pokok'], 0, ',', '.') ?></td>
                     <td class="text-right"><?= number_format($tunj_tetap, 0, ',', '.') ?></td>
                     <td class="text-right"><?= number_format($g['nilai_overtime'] ?? 0, 0, ',', '.') ?></td>

@@ -70,10 +70,12 @@ class AdminCabang extends Controller {
             'denda_16_30'          => $_POST['denda_16_30'],
             'denda_31_60'          => $_POST['denda_31_60'],
             'denda_alfa'           => $_POST['denda_alfa'],
+            'denda_tidak_absen_pulang' => $_POST['denda_tidak_absen_pulang'],
             'tarif_lembur_per_jam' => $_POST['tarif_lembur_per_jam']
         ];
 
         $result = $cabangModel->update($update_data);
+        if ($result['status']) catat_log('UPDATE', 'Cabang', 'Mengubah pengaturan denda cabang');
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -99,6 +101,7 @@ class AdminCabang extends Controller {
 
         $result = $cutiModel->responCuti($id_cuti, $id_admin, $status);
         if ($result) {
+            catat_log('UPDATE', 'Cuti', 'Merespon cuti ID ' . $id_cuti . ' dengan status ' . $status);
             echo json_encode(['status' => 'success', 'message' => 'Berhasil memberikan respon pada pengajuan cuti/izin.']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Gagal memberikan respon.']);
@@ -128,6 +131,7 @@ class AdminCabang extends Controller {
 
         $result = $lemburModel->responLembur($id_lembur, $id_admin, $status, $alasan);
         if ($result) {
+            catat_log('UPDATE', 'Lembur', 'Merespon lembur ID ' . $id_lembur . ' dengan status ' . $status);
             echo json_encode(['status' => 'success', 'message' => 'Berhasil memberikan respon pengajuan lembur.']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Gagal memberikan respon.']);
@@ -166,6 +170,7 @@ class AdminCabang extends Controller {
         $data['id_cabang'] = $this->id_cabang; // Paksa gunakan ID cabang yang login
         
         $result = $liburModel->simpan($data);
+        if ($result['status']) catat_log('CREATE', 'Libur', 'Menyimpan libur lokal cabang');
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -173,10 +178,46 @@ class AdminCabang extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $liburModel = $this->model('LiburCabang');
         if ($liburModel->hapus($id, $this->id_cabang)) {
+            catat_log('DELETE', 'Libur', 'Menghapus libur lokal cabang ID ' . $id);
             echo json_encode(['status' => 'success', 'message' => 'Hari libur lokal berhasil dihapus.']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Gagal menghapus hari libur lokal.']);
         }
+    }
+
+    // ==================== ABSENSI ====================
+    public function absensi() {
+        $bulan  = $_GET['bulan'] ?? date('n');
+        $tahun  = $_GET['tahun'] ?? date('Y');
+
+        $data['judul']     = 'Data Absensi Cabang | PT REN';
+        $data['bulan']     = (int)$bulan;
+        $data['tahun']     = (int)$tahun;
+
+        $penggajianModel    = $this->model('Penggajian');
+        $data['ringkasan']  = $penggajianModel->getRingkasanAbsensi($bulan, $tahun, $this->id_cabang);
+
+        $this->view('layouts/header', $data);
+        $this->view('admin_cabang/absensi/index', $data);
+        $this->view('layouts/footer');
+    }
+
+    public function detail_absensi_user() {
+        $id_user = $_GET['id_user'] ?? 0;
+        $bulan   = $_GET['bulan'] ?? date('n');
+        $tahun   = $_GET['tahun'] ?? date('Y');
+
+        $userModel = $this->model('User');
+        $user = $userModel->getPegawaiById($id_user);
+        
+        if (!$user || $user['id_cabang'] != $this->id_cabang) {
+            echo json_encode(['status' => 'error', 'message' => 'Akses ditolak.']);
+            return;
+        }
+
+        $absensiModel = $this->model('Absensi');
+        $detail       = $absensiModel->getDetailHarianUser($id_user, $bulan, $tahun);
+        echo json_encode(['status' => 'success', 'data' => $detail]);
     }
 
     // ==================== HELPER ====================

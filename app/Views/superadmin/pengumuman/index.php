@@ -33,8 +33,8 @@
                         <?php else: ?>
                             <?php foreach ($pengumuman as $p): ?>
                             <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 font-bold text-gray-800"><?= htmlspecialchars($p['judul']) ?></td>
-                                <td class="px-6 py-4 text-gray-600 line-clamp-2 max-w-sm"><?= htmlspecialchars($p['isi']) ?></td>
+                                <td class="px-6 py-4 font-bold text-gray-800"><?= esc($p['judul']) ?></td>
+                                <td class="px-6 py-4 text-gray-600 line-clamp-2 max-w-sm"><?= esc($p['isi']) ?></td>
                                 <td class="px-6 py-4 text-center">
                                     <?php if ($p['is_active']): ?>
                                         <span class="px-3 py-1 bg-green-100 text-green-700 text-[11px] font-bold rounded-full border border-green-200">Aktif</span>
@@ -73,6 +73,7 @@
             </button>
         </div>
         <form id="form-pengumuman" onsubmit="simpanPengumuman(event)" class="p-6">
+    <?= csrf_field() ?>
             <input type="hidden" name="id_pengumuman" id="id_pengumuman">
             
             <div class="mb-4">
@@ -170,8 +171,9 @@
             confirmButtonText: 'Ya, Hapus!'
         }).then(async (result) => {
             if (result.isConfirmed) {
-                const fd = new FormData(); fd.append('id', id);
-                const resp = await fetch('<?= BASE_URL ?>/superadmin/hapus_pengumuman/' + id, { method: 'POST' });
+                const resp = await fetch('<?= BASE_URL ?>/superadmin/hapus_pengumuman/' + id, { 
+                    method: 'POST', body: new URLSearchParams({ csrf_token: '<?= csrf_token() ?>' }) 
+                });
                 const data = await resp.json();
                 if (data.status === 'success') location.reload();
                 else Swal.fire('Error', data.message, 'error');

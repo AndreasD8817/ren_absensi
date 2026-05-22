@@ -38,7 +38,7 @@
                             ?>
                             <tr class="hover:bg-gray-50/50 transition-colors">
                                 <td class="py-4 px-6">
-                                    <p class="font-bold text-gray-800"><?= htmlspecialchars($c['nama_lengkap']) ?></p>
+                                    <p class="font-bold text-gray-800"><?= esc($c['nama_lengkap']) ?></p>
                                     <p class="text-xs text-gray-500"><?= $c['nip'] ?> &bull; <?= $c['jabatan'] ?></p>
                                 </td>
                                 <td class="py-4 px-6">
@@ -51,8 +51,8 @@
                                     <?php endif; ?>
                                 </td>
                                 <td class="py-4 px-6">
-                                    <p class="text-gray-600 max-w-[200px] truncate" title="<?= htmlspecialchars($c['keterangan']) ?>">
-                                        <?= htmlspecialchars($c['keterangan']) ?>
+                                    <p class="text-gray-600 max-w-[200px] truncate" title="<?= esc($c['keterangan']) ?>">
+                                        <?= esc($c['keterangan']) ?>
                                     </p>
                                 </td>
                                 <td class="py-4 px-6">
@@ -111,7 +111,7 @@
 
         const resp = await fetch('<?= BASE_URL ?>/admincabang/respon_cuti', {
             method: 'POST',
-            body: new URLSearchParams({ id_cuti, status })
+            body: new URLSearchParams({ id_cuti, status, csrf_token: '<?= csrf_token() ?>' })
         });
         const data = await resp.json();
 

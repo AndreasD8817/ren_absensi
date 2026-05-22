@@ -21,7 +21,7 @@
             <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-blue-100 to-transparent rounded-bl-3xl"></div>
                 <div>
-                    <h4 class="text-gray-500 text-sm font-semibold mb-1"><?= htmlspecialchars($r['nama_cabang']) ?></h4>
+                    <h4 class="text-gray-500 text-sm font-semibold mb-1"><?= esc($r['nama_cabang']) ?></h4>
                     <p class="text-3xl font-bold text-gray-800">Rp <?= number_format($r['saldo'], 0, ',', '.') ?></p>
                 </div>
                 <div class="mt-4 pt-4 border-t border-gray-50 flex justify-between text-xs">
@@ -59,7 +59,7 @@
                             <?php foreach ($riwayat as $trx): ?>
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 text-gray-600"><?= date('d M Y', strtotime($trx['tanggal'])) ?></td>
-                                <td class="px-6 py-4 font-medium text-gray-800"><?= htmlspecialchars($trx['keterangan']) ?></td>
+                                <td class="px-6 py-4 font-medium text-gray-800"><?= esc($trx['keterangan']) ?></td>
                                 <td class="px-6 py-4">
                                     <?php if ($trx['jenis'] == 'pemasukan'): ?>
                                         <span class="px-2.5 py-1 bg-green-100 text-green-700 text-[11px] font-bold rounded-full">Pemasukan (Dari Gaji)</span>
@@ -89,6 +89,7 @@
             <button onclick="tutupModal('modal-transaksi')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
         <form id="form-transaksi" onsubmit="submitTransaksi(event)" class="p-6 space-y-4">
+    <?= csrf_field() ?>
             <input type="hidden" name="jenis" value="pengeluaran">
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Tanggal</label>
@@ -99,7 +100,7 @@
                 <select name="id_cabang" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm outline-none bg-white focus:border-primary">
                     <option value="">-- Pilih Cabang --</option>
                     <?php foreach ($cabang as $c): ?>
-                    <option value="<?= $c['id_cabang'] ?>"><?= htmlspecialchars($c['nama_cabang']) ?></option>
+                    <option value="<?= $c['id_cabang'] ?>"><?= esc($c['nama_cabang']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>

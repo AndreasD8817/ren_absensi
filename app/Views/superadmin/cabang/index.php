@@ -21,7 +21,7 @@
                 <div class="bg-gradient-to-r from-primary to-blue-600 p-5 text-white">
                     <div class="flex justify-between items-start">
                         <div>
-                            <h3 class="font-bold text-lg"><?= htmlspecialchars($c['nama_cabang']) ?></h3>
+                            <h3 class="font-bold text-lg"><?= esc($c['nama_cabang']) ?></h3>
                             <p class="text-blue-200 text-xs mt-1">Radius: <?= $c['radius_meter'] ?> meter</p>
                         </div>
                         <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
@@ -60,6 +60,10 @@
                             <p class="text-[10px] text-red-400">Alfa / Mangkir</p>
                             <p class="font-semibold text-red-600">Rp <?= number_format($c['denda_alfa'],0,',','.') ?></p>
                         </div>
+                        <div class="bg-orange-50 rounded-lg p-2 col-span-2">
+                            <p class="text-[10px] text-orange-500">Tidak Absen Pulang</p>
+                            <p class="font-semibold text-orange-600">Rp <?= number_format($c['denda_tidak_absen_pulang'],0,',','.') ?></p>
+                        </div>
                     </div>
                     <div class="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
                         <span class="text-xs text-gray-500">Lembur: <b>Rp <?= number_format($c['tarif_lembur_per_jam'],0,',','.') ?>/jam</b></span>
@@ -82,6 +86,7 @@
             <button onclick="tutupModal('modal-tambah')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
         <form id="form-tambah" onsubmit="submitTambah(event)" class="p-6 space-y-4">
+    <?= csrf_field() ?>
             <?php echo renderFormCabang(); ?>
             <div class="flex justify-end gap-3 pt-2">
                 <button type="button" onclick="tutupModal('modal-tambah')" class="px-5 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">Batal</button>
@@ -99,6 +104,7 @@
             <button onclick="tutupModal('modal-edit')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
         <form id="form-edit" onsubmit="submitEdit(event)" class="p-6 space-y-4">
+    <?= csrf_field() ?>
             <input type="hidden" name="id_cabang" id="edit-id_cabang">
             <?php echo renderFormCabang('edit-'); ?>
             <div class="flex justify-end gap-3 pt-2">
@@ -140,14 +146,15 @@ function renderFormCabang($prefix = '') {
                 <input name="radius_meter" id="<?= $prefix ?>radius_meter" required type="number" class="<?= $inputClass ?>" placeholder="100">
             </div>
         </div>
-        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider pt-2 border-t">Nominal Denda Keterlambatan (Rp)</p>
+        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider pt-2 border-t">Nominal Denda Keterlambatan & Kehadiran (Rp)</p>
         <div class="grid grid-cols-3 gap-3">
             <div><label class="block text-xs text-gray-500 mb-1">1-5 menit</label><input name="denda_1_5" id="<?= $prefix ?>denda_1_5" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
             <div><label class="block text-xs text-gray-500 mb-1">6-10 menit</label><input name="denda_6_10" id="<?= $prefix ?>denda_6_10" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
             <div><label class="block text-xs text-gray-500 mb-1">11-15 menit</label><input name="denda_11_15" id="<?= $prefix ?>denda_11_15" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
             <div><label class="block text-xs text-gray-500 mb-1">16-30 menit</label><input name="denda_16_30" id="<?= $prefix ?>denda_16_30" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
             <div><label class="block text-xs text-gray-500 mb-1">31-60 menit</label><input name="denda_31_60" id="<?= $prefix ?>denda_31_60" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
-            <div><label class="block text-xs text-gray-500 mb-1 text-red-500">Alfa (Rp)</label><input name="denda_alfa" id="<?= $prefix ?>denda_alfa" type="number" class="<?= $inputClass ?>" placeholder="50000"></div>
+            <div><label class="block text-xs text-red-500 mb-1">Alfa (Rp)</label><input name="denda_alfa" id="<?= $prefix ?>denda_alfa" type="number" class="<?= $inputClass ?>" placeholder="50000"></div>
+            <div class="col-span-3"><label class="block text-xs text-orange-500 mb-1">Tidak Absen Pulang (Rp)</label><input name="denda_tidak_absen_pulang" id="<?= $prefix ?>denda_tidak_absen_pulang" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
         </div>
         <div>
             <label class="block text-xs font-semibold text-gray-600 mb-1">Tarif Lembur/Jam (Rp)</label>
@@ -177,6 +184,7 @@ function renderFormCabang($prefix = '') {
         document.getElementById('edit-denda_16_30').value  = d.denda_16_30;
         document.getElementById('edit-denda_31_60').value  = d.denda_31_60;
         document.getElementById('edit-denda_alfa').value   = d.denda_alfa;
+        document.getElementById('edit-denda_tidak_absen_pulang').value = d.denda_tidak_absen_pulang;
         document.getElementById('edit-tarif_lembur').value = d.tarif_lembur_per_jam;
         document.getElementById('modal-edit').classList.remove('hidden');
         document.getElementById('modal-edit').classList.add('flex');

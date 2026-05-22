@@ -42,6 +42,9 @@ class Auth extends Controller {
                 // Set sesi login
                 $_SESSION['user'] = $loginResult['data'];
                 
+                // Catat Log Aktivitas
+                catat_log('LOGIN', 'Autentikasi', 'User berhasil login ke dalam sistem');
+
                 // Redirect sesuai role
                 $role = $_SESSION['user']['role'];
                 if ($role === 'superadmin') {
@@ -65,6 +68,11 @@ class Auth extends Controller {
     }
 
     public function logout() {
+        // Catat Log Aktivitas sebelum sesi dihapus
+        if (isset($_SESSION['user'])) {
+            catat_log('LOGOUT', 'Autentikasi', 'User keluar dari sistem');
+        }
+
         // Hapus semua data sesi
         session_unset();
         session_destroy();

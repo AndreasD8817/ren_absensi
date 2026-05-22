@@ -49,12 +49,12 @@ $badge_labels = ['pending'=>'Menunggu','approved'=>'Disetujui','rejected'=>'Dito
                                             <?= mb_substr($c['nama_lengkap'], 0, 2) ?>
                                         </div>
                                         <div>
-                                            <p class="font-semibold text-gray-800"><?= htmlspecialchars($c['nama_lengkap']) ?></p>
+                                            <p class="font-semibold text-gray-800"><?= esc($c['nama_lengkap']) ?></p>
                                             <p class="text-xs text-gray-400"><?= $c['nip'] ?> · <?= $c['jabatan'] ?></p>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 text-gray-600 font-medium"><?= htmlspecialchars($c['nama_cabang']) ?></td>
+                                <td class="px-6 py-4 text-gray-600 font-medium"><?= esc($c['nama_cabang']) ?></td>
                                 <td class="px-6 py-4">
                                     <span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold"><?= $c['jenis'] ?></span>
                                 </td>
@@ -62,7 +62,7 @@ $badge_labels = ['pending'=>'Menunggu','approved'=>'Disetujui','rejected'=>'Dito
                                     <?= date('d M Y', strtotime($c['tanggal_mulai'])) ?> –
                                     <?= date('d M Y', strtotime($c['tanggal_selesai'])) ?>
                                 </td>
-                                <td class="px-6 py-4 text-gray-500 text-xs max-w-[200px] truncate"><?= htmlspecialchars($c['keterangan']) ?></td>
+                                <td class="px-6 py-4 text-gray-500 text-xs max-w-[200px] truncate"><?= esc($c['keterangan']) ?></td>
                                 <td class="px-6 py-4 text-center">
                                     <span class="px-2.5 py-1 <?= $badge_colors[$c['status']] ?> rounded-full text-xs font-bold">
                                         <?= $badge_labels[$c['status']] ?>
@@ -108,6 +108,7 @@ async function responCuti(id, status) {
     const fd = new FormData();
     fd.append('id_cuti', id);
     fd.append('status', status);
+    fd.append('csrf_token', '<?= csrf_token() ?>');
 
     const resp = await fetch('<?= BASE_URL ?>/superadmin/respon_cuti_pusat', { method: 'POST', body: fd });
     const data = await resp.json();

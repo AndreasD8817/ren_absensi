@@ -35,8 +35,8 @@
                                     <div class="flex items-center gap-3">
                                         <img src="https://ui-avatars.com/api/?name=<?= urlencode($l['nama_lengkap']) ?>&background=random" class="w-8 h-8 rounded-full">
                                         <div>
-                                            <p class="font-bold text-gray-800"><?= htmlspecialchars($l['nama_lengkap']) ?></p>
-                                            <p class="text-xs text-gray-500"><?= htmlspecialchars($l['jabatan']) ?></p>
+                                            <p class="font-bold text-gray-800"><?= esc($l['nama_lengkap']) ?></p>
+                                            <p class="text-xs text-gray-500"><?= esc($l['jabatan']) ?></p>
                                         </div>
                                     </div>
                                 </td>
@@ -45,7 +45,7 @@
                                     <p class="text-[11px] text-gray-500 mt-0.5"><i class="fa-regular fa-clock"></i> <?= $jam ?> (<?= $l['durasi_jam'] ?> Jam)</p>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <p class="text-xs text-gray-600 line-clamp-2 max-w-xs"><?= htmlspecialchars($l['keterangan']) ?></p>
+                                    <p class="text-xs text-gray-600 line-clamp-2 max-w-xs"><?= esc($l['keterangan']) ?></p>
                                 </td>
                                 <td class="px-6 py-4 text-center">
                                     <?php if ($l['status'] == 'pending'): ?>
@@ -111,6 +111,7 @@
         fd.append('id_lembur', id_lembur);
         fd.append('status', status);
         if (alasan) fd.append('alasan_reject', alasan);
+        fd.append('csrf_token', '<?= csrf_token() ?>');
 
         const resp = await fetch('<?= BASE_URL ?>/admincabang/respon_lembur', {
             method: 'POST', body: fd

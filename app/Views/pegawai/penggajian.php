@@ -54,12 +54,90 @@
                     </div>
                 </div>
 
-                <button onclick='lihatSlip(<?= json_encode($g) ?>, <?= json_encode($pegawai) ?>)' class="w-full py-2.5 bg-white border border-primary text-primary rounded-xl font-bold text-sm hover:bg-blue-50 active:bg-blue-100 transition-colors flex items-center justify-center gap-2">
-                    <i class="fa-regular fa-eye"></i> Lihat Slip Detail
+                <button onclick='bukaPilihanSlip(<?= json_encode($g) ?>, <?= json_encode($pegawai) ?>)' class="w-full py-2.5 bg-white border border-primary text-primary rounded-xl font-bold text-sm hover:bg-blue-50 active:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+                    <i class="fa-regular fa-file-lines"></i> Pilih Dokumen
                 </button>
             </div>
             <?php endforeach; ?>
         <?php endif; ?>
+    </div>
+</div>
+
+<!-- ==================== MODAL PILIHAN SLIP ==================== -->
+<div id="modal-pilihan-slip" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center relative">
+        <button onclick="tutupPilihanSlip()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500">
+            <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+        <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+            <i class="fa-solid fa-file-lines"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Pilih Dokumen</h3>
+        <p class="text-sm text-gray-500 mb-6">Dokumen mana yang ingin Anda lihat untuk periode ini?</p>
+        
+        <div class="flex flex-col gap-3">
+            <button onclick="pilihSlipGaji()" class="w-full py-3 bg-primary text-white rounded-xl font-bold shadow-sm hover:bg-blue-700 active:scale-95 transition-all">
+                <i class="fa-solid fa-money-check-dollar mr-2"></i> Slip Gaji
+            </button>
+            <button onclick="pilihSlipDenda()" class="w-full py-3 bg-white border border-red-500 text-red-500 rounded-xl font-bold shadow-sm hover:bg-red-50 active:scale-95 transition-all">
+                <i class="fa-solid fa-receipt mr-2"></i> Penalty Sheet (Denda)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== MODAL DENDA (PENALTY SHEET) ==================== -->
+<div id="modal-denda" class="fixed inset-0 z-50 hidden items-start justify-center bg-black/60 backdrop-blur-sm p-2 md:p-4 overflow-y-auto pt-10 pb-10">
+    <div class="bg-white shadow-2xl w-full max-w-4xl font-mono text-sm relative mt-4">
+        
+        <div class="absolute top-4 right-4 flex flex-col md:flex-row gap-2 z-40 print:hidden">
+            <button onclick="cetakDenda()" class="px-4 py-2 bg-primary text-white rounded shadow-sm active:scale-95 transition-transform text-xs font-sans flex items-center justify-center">
+                <i class="fa-solid fa-print mr-2"></i>Cetak PDF
+            </button>
+            <button onclick="tutupDenda()" class="px-4 py-2 bg-red-100 text-red-600 rounded shadow-sm active:scale-95 transition-transform text-xs font-sans flex items-center justify-center">
+                <i class="fa-solid fa-xmark mr-2"></i>Tutup
+            </button>
+        </div>
+        
+        <div id="area-cetak-denda" class="p-6 md:p-10 bg-white text-black w-[794px] max-w-[794px] mx-auto overflow-hidden print:overflow-visible print:w-auto">
+            <div class="mb-4">
+                <h1 class="font-bold text-lg leading-tight uppercase">PT REN</h1>
+                <p class="text-xs">Rincian Potongan Keterlambatan</p>
+            </div>
+            
+            <h2 class="text-center font-bold text-lg mb-6 tracking-widest border-b-2 border-black pb-4">PENALTY SHEET</h2>
+            
+            <div class="grid grid-cols-2 gap-x-12 gap-y-1 mb-6 text-xs">
+                <div class="flex"><div class="w-24 font-bold">Nama</div><div>: <span id="denda-nama"></span></div></div>
+                <div class="flex"><div class="w-32 font-bold">Periode</div><div>: <span id="denda-periode"></span></div></div>
+            </div>
+            
+            <table class="w-full text-xs text-left mb-6">
+                <thead>
+                    <tr class="border-y-2 border-black font-bold">
+                        <th class="py-2 w-10">No</th>
+                        <th class="py-2">Tanggal</th>
+                        <th class="py-2 text-center">Jam Masuk</th>
+                        <th class="py-2 text-center">Menit Telat / Jenis Denda</th>
+                        <th class="py-2 text-right">Potongan</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-denda">
+                    <tr><td colspan="5" class="py-4 text-center">Memuat...</td></tr>
+                </tbody>
+                <tfoot>
+                    <tr class="border-t-2 border-black font-bold text-sm">
+                        <td colspan="4" class="py-3 text-right">TOTAL POTONGAN:</td>
+                        <td class="py-3 text-right text-red-600" id="denda-total"></td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <div class="border-t-2 border-black mt-8 pt-2">
+                <p class="text-[10px] italic">* Rincian di atas merupakan akumulasi denda yang dipotongkan pada gaji periode ini sesuai ketentuan cabang.</p>
+            </div>
+            
+        </div>
     </div>
 </div>
 
@@ -77,7 +155,7 @@
             </button>
         </div>
         
-        <div id="area-cetak-slip" class="p-6 md:p-10 bg-white text-black min-w-[700px] md:min-w-0 overflow-x-auto print:overflow-visible print:min-w-0">
+        <div id="area-cetak-slip" class="p-6 md:p-10 bg-white text-black w-[794px] max-w-[794px] mx-auto overflow-hidden print:overflow-visible print:w-auto">
             <!-- Header Perusahaan -->
             <div class="mb-4">
                 <h1 class="font-bold text-lg leading-tight uppercase">PT REN</h1>
@@ -106,6 +184,7 @@
                     <h3 class="font-bold mb-4 uppercase">PENDAPATAN :</h3>
                     
                     <div class="flex justify-between mb-1"><div class="flex-1">- Gaji Pokok</div><div class="w-4">:</div><div class="w-20 md:w-24 text-right" id="p-gaji"></div></div>
+                    <div class="flex justify-between mb-1"><div class="flex-1">- Bonus / THR</div><div class="w-4">:</div><div class="w-20 md:w-24 text-right" id="p-bonus"></div></div>
                     <div class="flex justify-between mb-1"><div class="flex-1">- Tunjangan Jabatan</div><div class="w-4">:</div><div class="w-20 md:w-24 text-right" id="p-tjab"></div></div>
                     <div class="flex justify-between mb-1"><div class="flex-1">- Tunjangan* Transportasi</div><div class="w-4">:</div><div class="w-20 md:w-24 text-right" id="p-ttrans"></div></div>
                     <div class="flex justify-between mb-1"><div class="flex-1 pl-4 md:pl-16">Makan</div><div class="w-4">:</div><div class="w-20 md:w-24 text-right" id="p-tmakan"></div></div>
@@ -175,6 +254,92 @@ const formatRupiah = (angka) => {
 
 const namaBulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
+let selectedGaji = null;
+let selectedUser = null;
+
+function bukaPilihanSlip(g, user) {
+    selectedGaji = g;
+    selectedUser = user;
+    document.getElementById('modal-pilihan-slip').classList.remove('hidden');
+    document.getElementById('modal-pilihan-slip').classList.add('flex');
+}
+
+function tutupPilihanSlip() {
+    document.getElementById('modal-pilihan-slip').classList.add('hidden');
+    document.getElementById('modal-pilihan-slip').classList.remove('flex');
+}
+
+function pilihSlipGaji() {
+    tutupPilihanSlip();
+    lihatSlip(selectedGaji, selectedUser);
+}
+
+function pilihSlipDenda() {
+    tutupPilihanSlip();
+    bukaDenda(selectedGaji.bulan, selectedGaji.tahun);
+}
+
+async function bukaDenda(bulan, tahun) {
+    document.getElementById('modal-denda').classList.remove('hidden');
+    document.getElementById('modal-denda').classList.add('flex');
+    
+    document.getElementById('denda-nama').innerText = selectedUser.nama_lengkap;
+    document.getElementById('denda-periode').innerText = namaBulan[bulan] + ' ' + tahun;
+    document.getElementById('tbody-denda').innerHTML = '<tr><td colspan="5" class="py-4 text-center">Memuat data...</td></tr>';
+    document.getElementById('denda-total').innerText = 'Rp 0';
+    
+    const resp = await fetch(`<?= BASE_URL ?>/pegawai/detail_denda?bulan=${bulan}&tahun=${tahun}`);
+    const json = await resp.json();
+    
+    if (json.status === 'success') {
+        let html = '';
+        if (json.data.length === 0) {
+            html = '<tr><td colspan="5" class="py-4 text-center">Tidak ada rincian denda.</td></tr>';
+        } else {
+            json.data.forEach((d, i) => {
+                const tgl = d.is_alfa_summary ? '-' : new Date(d.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+                const jamMasuk = d.jam_masuk || '-';
+                const jenis = d.jenis_denda || (d.menit_terlambat + ' m');
+                
+                html += `<tr>
+                    <td class="py-2 border-b border-gray-200">${i+1}</td>
+                    <td class="py-2 border-b border-gray-200">${tgl}</td>
+                    <td class="py-2 border-b border-gray-200 text-center">${jamMasuk}</td>
+                    <td class="py-2 border-b border-gray-200 text-center text-red-500 font-bold">${jenis}</td>
+                    <td class="py-2 border-b border-gray-200 text-right">- Rp ${formatRupiah(d.denda)}</td>
+                </tr>`;
+            });
+        }
+        document.getElementById('tbody-denda').innerHTML = html;
+        document.getElementById('denda-total').innerText = 'Rp ' + formatRupiah(json.total_denda);
+    }
+}
+
+function tutupDenda() {
+    document.getElementById('modal-denda').classList.add('hidden');
+    document.getElementById('modal-denda').classList.remove('flex');
+}
+
+function cetakDenda() {
+    const element = document.getElementById('area-cetak-denda');
+    const nama = selectedUser.nama_lengkap;
+    const periode = namaBulan[selectedGaji.bulan] + '_' + selectedGaji.tahun;
+    
+    var opt = {
+        margin:       10,
+        filename:     `Penalty_Sheet_${nama}_${periode}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    Swal.fire({ title: 'Membuat PDF...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        Swal.close();
+    });
+}
+
 function lihatSlip(g, user) {
     document.getElementById('slip-nip').innerText = user.nip || '-';
     document.getElementById('slip-nama').innerText = user.nama_lengkap;
@@ -186,6 +351,7 @@ function lihatSlip(g, user) {
 
     // PENDAPATAN
     document.getElementById('p-gaji').innerText = formatRupiah(g.nilai_gaji_pokok);
+    document.getElementById('p-bonus').innerText = formatRupiah(g.nilai_bonus || 0);
     document.getElementById('p-tjab').innerText = formatRupiah(g.nilai_tunj_jabatan);
     document.getElementById('p-ttrans').innerText = formatRupiah(g.nilai_tunj_transportasi);
     document.getElementById('p-tmakan').innerText = formatRupiah(g.nilai_tunj_makan);
@@ -196,7 +362,8 @@ function lihatSlip(g, user) {
     let overtime = parseFloat(g.nilai_overtime || 0);
     document.getElementById('p-overtime').innerText = formatRupiah(overtime);
 
-    let subtotal1 = parseFloat(g.nilai_gaji_pokok) + parseFloat(g.nilai_tunj_jabatan) + parseFloat(g.nilai_tunj_transportasi) + parseFloat(g.nilai_tunj_makan) + parseFloat(g.nilai_tunj_kehadiran) + parseFloat(g.nilai_tunj_lainnya) + overtime;
+    let bonus = parseFloat(g.nilai_bonus || 0);
+    let subtotal1 = parseFloat(g.nilai_gaji_pokok) + bonus + parseFloat(g.nilai_tunj_jabatan) + parseFloat(g.nilai_tunj_transportasi) + parseFloat(g.nilai_tunj_makan) + parseFloat(g.nilai_tunj_kehadiran) + parseFloat(g.nilai_tunj_lainnya) + overtime;
     document.getElementById('p-subtotal1').innerText = formatRupiah(subtotal1);
 
     document.getElementById('p-jht37').innerText = formatRupiah(g.tunj_jht_37);

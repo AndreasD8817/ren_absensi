@@ -47,6 +47,7 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $userModel = $this->model('User');
         $result    = $userModel->insertPegawai($_POST);
+        if ($result['status']) catat_log('CREATE', 'Pegawai', 'Menambahkan pegawai NIP ' . $_POST['nip']);
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -54,6 +55,7 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $userModel = $this->model('User');
         $result    = $userModel->updatePegawai($_POST);
+        if ($result['status']) catat_log('UPDATE', 'Pegawai', 'Mengubah data pegawai NIP ' . $_POST['nip']);
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -61,6 +63,7 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $userModel = $this->model('User');
         $result    = $userModel->toggleStatusPegawai($_POST['id_user']);
+        if ($result) catat_log('UPDATE', 'Pegawai', 'Mengubah status aktif pegawai ID ' . $_POST['id_user']);
         echo json_encode(['status' => $result ? 'success' : 'error', 'message' => $result ? 'Status pegawai berhasil diubah.' : 'Gagal mengubah status.']);
     }
 
@@ -78,6 +81,7 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $cabangModel = $this->model('Cabang');
         $result      = $cabangModel->insert($_POST);
+        if ($result['status']) catat_log('CREATE', 'Cabang', 'Menambahkan cabang baru: ' . $_POST['nama_cabang']);
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -85,6 +89,7 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $cabangModel = $this->model('Cabang');
         $result      = $cabangModel->update($_POST);
+        if ($result['status']) catat_log('UPDATE', 'Cabang', 'Mengubah data cabang: ' . $_POST['nama_cabang']);
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -113,13 +118,18 @@ class Superadmin extends Controller {
     public function absensi() {
         $bulan  = $_GET['bulan'] ?? date('n');
         $tahun  = $_GET['tahun'] ?? date('Y');
+        $id_cabang = $_GET['id_cabang'] ?? null;
 
         $data['judul']     = 'Data Absensi | PT REN';
         $data['bulan']     = (int)$bulan;
         $data['tahun']     = (int)$tahun;
+        $data['id_cabang'] = $id_cabang ? (int)$id_cabang : null;
+
+        $cabangModel       = $this->model('Cabang');
+        $data['list_cabang'] = $cabangModel->getAll();
 
         $penggajianModel    = $this->model('Penggajian');
-        $data['ringkasan']  = $penggajianModel->getRingkasanAbsensi($bulan, $tahun);
+        $data['ringkasan']  = $penggajianModel->getRingkasanAbsensi($bulan, $tahun, $data['id_cabang']);
 
         $this->view('layouts/header', $data);
         $this->view('superadmin/absensi/index', $data);
@@ -143,6 +153,71 @@ class Superadmin extends Controller {
         echo json_encode(['status' => $result ? 'success' : 'error', 'message' => $result ? 'Data absensi berhasil diperbarui.' : 'Gagal memperbarui data.']);
     }
 
+    public function detail_denda_telat() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') { $this->jsonError('Metode tidak valid.'); return; }
+        $id_user = $_GET['id_user'] ?? 0;
+        $bulan   = $_GET['bulan'] ?? date('n');
+        $tahun   = $_GET['tahun'] ?? date('Y');
+
+        $userModel = $this->model('User');
+        $user = $userModel->getPegawaiById($id_user);
+        if (!$user) { $this->jsonError('Pegawai tidak ditemukan.'); return; }
+
+        $cabangModel = $this->model('Cabang');
+        $cabang = $cabangModel->getById($user['id_cabang']);
+
+        $absensiModel = $this->model('Absensi');
+        $detail = $absensiModel->getDetailHarianUser($id_user, $bulan, $tahun);
+
+        $penggajianModel = $this->model('Penggajian');
+        
+        $rincian = [];
+        $total_denda = 0;
+        foreach ($detail as $d) {
+            // Cek Keterlambatan
+            if ($d['status'] === 'telat') {
+                $denda_per_kejadian = $penggajianModel->hitungDendaTelat($d['menit_terlambat'], $cabang);
+                $d_telat = $d;
+                $d_telat['jenis_denda'] = "Terlambat ({$d['menit_terlambat']} menit)";
+                $d_telat['denda'] = $denda_per_kejadian;
+                $total_denda += $denda_per_kejadian;
+                $rincian[] = $d_telat;
+            }
+            // Cek Lupa Absen Pulang (Ada jam masuk, tapi tidak ada jam pulang)
+            if ($d['jam_masuk'] !== null && $d['jam_pulang'] === null) {
+                $d_lupa = $d;
+                $d_lupa['jenis_denda'] = "Lupa Absen Pulang";
+                $d_lupa['denda'] = $cabang['denda_tidak_absen_pulang'];
+                $total_denda += $cabang['denda_tidak_absen_pulang'];
+                $rincian[] = $d_lupa;
+            }
+        }
+
+        // Tambahkan Rangkuman Alfa
+        $ringkasan = $penggajianModel->getRingkasanAbsensi($bulan, $tahun, $user['id_cabang']);
+        $total_alfa = 0;
+        foreach($ringkasan as $r) {
+            if ($r['id_user'] == $id_user) {
+                $total_alfa = $r['total_alfa'] ?? 0;
+                break;
+            }
+        }
+
+        if ($total_alfa > 0) {
+            $denda_alfa_total = $total_alfa * $cabang['denda_alfa'];
+            $total_denda += $denda_alfa_total;
+            $rincian[] = [
+                'tanggal' => null,
+                'jenis_denda' => "Alfa / Tidak Masuk Kerja ($total_alfa Hari)",
+                'jam_masuk' => '-',
+                'denda' => $denda_alfa_total,
+                'is_alfa_summary' => true
+            ];
+        }
+
+        echo json_encode(['status' => 'success', 'data' => $rincian, 'total_denda' => $total_denda]);
+    }
+
     // ==================== PENGGAJIAN ====================
     public function penggajian() {
         $bulan  = $_GET['bulan'] ?? date('n');
@@ -156,6 +231,9 @@ class Superadmin extends Controller {
         $data['data_gaji']  = $penggajianModel->getDataGaji($bulan, $tahun);
         $data['ringkasan']  = $penggajianModel->getRingkasanAbsensi($bulan, $tahun);
 
+        $cabangModel       = $this->model('Cabang');
+        $data['list_cabang'] = $cabangModel->getAll();
+
         $this->view('layouts/header', $data);
         $this->view('superadmin/penggajian/index', $data);
         $this->view('layouts/footer');
@@ -164,15 +242,31 @@ class Superadmin extends Controller {
     public function generate_gaji() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $penggajianModel = $this->model('Penggajian');
-        $result = $penggajianModel->generateGaji($_POST['bulan'], $_POST['tahun']);
+        $id_cabang = empty($_POST['id_cabang']) ? null : $_POST['id_cabang'];
+        $result = $penggajianModel->generateGaji($_POST['bulan'], $_POST['tahun'], $id_cabang);
+        catat_log('CREATE', 'Penggajian', 'Melakukan generate gaji periode ' . $_POST['bulan'] . '/' . $_POST['tahun'] . ($id_cabang ? ' untuk cabang ID ' . $id_cabang : ' untuk semua cabang'));
         echo json_encode(['status' => 'success', 'message' => $result['message'], 'total' => $result['total']]);
     }
 
     public function publish_gaji() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
+        
+        $currentMonth = (int)date('n');
+        $currentYear = (int)date('Y');
+        $selectedMonth = (int)$_POST['bulan'];
+        $selectedYear = (int)$_POST['tahun'];
+        
+        if ($selectedYear > $currentYear || ($selectedYear === $currentYear && $selectedMonth >= $currentMonth)) {
+            echo json_encode(['status' => 'error', 'message' => 'Gaji hanya dapat dipublikasikan untuk bulan yang sudah berlalu.']);
+            return;
+        }
+
         $penggajianModel = $this->model('Penggajian');
-        $penggajianModel->publishGaji($_POST['bulan'], $_POST['tahun']);
-        echo json_encode(['status' => 'success', 'message' => 'Gaji berhasil dipublikasikan ke semua pegawai!']);
+        $id_cabang = empty($_POST['id_cabang']) || $_POST['id_cabang'] === 'all' ? null : $_POST['id_cabang'];
+        $penggajianModel->publishGaji($_POST['bulan'], $_POST['tahun'], $id_cabang);
+        catat_log('UPDATE', 'Penggajian', 'Mempublikasikan gaji periode ' . $_POST['bulan'] . '/' . $_POST['tahun'] . ($id_cabang ? ' untuk cabang ID ' . $id_cabang : ' untuk semua cabang'));
+        $msg = $id_cabang ? 'Gaji cabang terpilih berhasil dipublikasikan!' : 'Gaji berhasil dipublikasikan ke semua pegawai!';
+        echo json_encode(['status' => 'success', 'message' => $msg]);
     }
 
     // ==================== INSENTIF ====================
@@ -198,6 +292,7 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $insentifModel = $this->model('Insentif');
         $result = $insentifModel->simpanDanDistribusi($_POST);
+        if ($result['status']) catat_log('CREATE', 'Insentif', 'Menambahkan insentif: ' . $_POST['keterangan']);
         echo json_encode([
             'status'  => $result['status'] ? 'success' : 'error',
             'message' => $result['message'],
@@ -210,6 +305,7 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $insentifModel = $this->model('Insentif');
         $result = $insentifModel->publish($_POST['id_insentif']);
+        if ($result['status']) catat_log('UPDATE', 'Insentif', 'Mempublikasikan insentif ID ' . $_POST['id_insentif']);
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -217,6 +313,7 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $insentifModel = $this->model('Insentif');
         $result = $insentifModel->hapus($_POST['id_insentif']);
+        if ($result['status']) catat_log('DELETE', 'Insentif', 'Menghapus insentif ID ' . $_POST['id_insentif']);
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -225,6 +322,92 @@ class Superadmin extends Controller {
         $insentifModel = $this->model('Insentif');
         $detail = $insentifModel->getDetailPegawai($_GET['id']);
         echo json_encode(['status' => 'success', 'data' => $detail]);
+    }
+
+    // ==================== BONUS & THR ====================
+    public function bonus_thr() {
+        $bulan  = $_GET['bulan'] ?? date('n');
+        $tahun  = $_GET['tahun'] ?? date('Y');
+
+        $data['judul']      = 'Kelola Bonus & THR | PT REN';
+        $data['bulan']      = (int)$bulan;
+        $data['tahun']      = (int)$tahun;
+
+        $bonusModel         = $this->model('BonusThr');
+        $userModel          = $this->model('User');
+        
+        $data['list_bonus'] = $bonusModel->getBonusByBulanTahun($bulan, $tahun);
+        $semua = $userModel->getAllPegawai();
+        $data['semua_pegawai'] = array_filter($semua, function($u) { return $u['role'] === 'pegawai'; });
+
+        $this->view('layouts/header', $data);
+        $this->view('superadmin/bonus_thr/index', $data);
+        $this->view('layouts/footer');
+    }
+
+    public function simpan_bonus_manual() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
+        $bonusModel = $this->model('BonusThr');
+        $result = $bonusModel->simpanBonusManual($_POST);
+        if ($result['status']) catat_log('CREATE', 'BonusThr', 'Menambahkan bonus/THR manual untuk user ID ' . $_POST['id_user']);
+        echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
+    }
+
+    public function download_template_bonus() {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=Template_Bonus_THR_' . date('Ymd') . '.csv');
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['ID User (JANGAN DIUBAH)', 'NIK', 'Nama Pegawai', 'Cabang', 'Nominal Bonus/THR', 'Keterangan']);
+        
+        $userModel = $this->model('User');
+        $semua = $userModel->getAllPegawai();
+        $pegawai = array_filter($semua, function($u) { return $u['role'] === 'pegawai'; });
+        
+        foreach ($pegawai as $p) {
+            fputcsv($output, [$p['id_user'], $p['nip'], $p['nama_lengkap'], $p['nama_cabang'], 0, 'THR / Bonus Akhir Tahun']);
+        }
+        fclose($output);
+        exit;
+    }
+
+    public function upload_bonus_csv() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['file_csv'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Upload tidak valid.']); return;
+        }
+
+        $file = $_FILES['file_csv']['tmp_name'];
+        if (($handle = fopen($file, "r")) !== FALSE) {
+            $header = fgetcsv($handle, 1000, ","); // Skip header
+            $data_insert = [];
+            $bulan = (int)$_POST['bulan'];
+            $tahun = (int)$_POST['tahun'];
+
+            while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+                // Ensure data has enough columns and nominal > 0
+                if (isset($data[0]) && isset($data[4]) && (float)$data[4] > 0) {
+                    $data_insert[] = [
+                        'id_user' => (int)$data[0],
+                        'bulan' => $bulan,
+                        'tahun' => $tahun,
+                        'nominal' => (float)$data[4],
+                        'keterangan' => isset($data[5]) ? trim($data[5]) : 'Bonus/THR'
+                    ];
+                }
+            }
+            fclose($handle);
+
+            if (empty($data_insert)) {
+                echo json_encode(['status' => 'error', 'message' => 'Tidak ada data valid dengan nominal > 0 di CSV tersebut.']); return;
+            }
+
+            $bonusModel = $this->model('BonusThr');
+            $result = $bonusModel->simpanBonusMassal($data_insert);
+            
+            if ($result['status']) catat_log('CREATE', 'BonusThr', 'Upload CSV Bonus/THR sebanyak ' . count($data_insert) . ' data');
+            echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Gagal membaca file CSV.']);
+        }
     }
 
     // ==================== KAS DENDA CABANG ====================
@@ -261,6 +444,7 @@ class Superadmin extends Controller {
             'nominal'    => $_POST['nominal'],
             'keterangan' => $_POST['keterangan']
         ]);
+        if ($result['status']) catat_log('CREATE', 'KasDenda', 'Menambahkan transaksi kas ' . $_POST['jenis'] . ' sebesar ' . $_POST['nominal'] . ' untuk cabang ID ' . $_POST['id_cabang']);
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -337,6 +521,7 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $liburModel = $this->model('LiburNasional');
         $result = $liburModel->simpan($_POST);
+        if ($result['status']) catat_log('CREATE', 'Libur', 'Menambahkan libur nasional pada ' . $_POST['tanggal']);
         echo json_encode(['status' => $result['status'] ? 'success' : 'error', 'message' => $result['message']]);
     }
 
@@ -344,6 +529,7 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $liburModel = $this->model('LiburNasional');
         if ($liburModel->hapus($id)) {
+            catat_log('DELETE', 'Libur', 'Menghapus libur nasional ID ' . $id);
             echo json_encode(['status' => 'success', 'message' => 'Hari libur berhasil dihapus.']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Gagal menghapus hari libur.']);
@@ -370,7 +556,7 @@ class Superadmin extends Controller {
         $data['judul'] = 'Kelola Pengumuman | PT REN';
         $db = (new Database())->getConnection();
         
-        $stmt = $db->query("SELECT * FROM pengumuman ORDER BY created_at DESC");
+        $stmt = $db->query("SELECT id_pengumuman, id_cabang, judul, isi_pengumuman AS isi, is_active, created_at FROM pengumuman ORDER BY created_at DESC");
         $data['pengumuman'] = $stmt->fetchAll();
 
         $this->view('layouts/header', $data);
@@ -388,20 +574,25 @@ class Superadmin extends Controller {
 
         $db = (new Database())->getConnection();
         
-        if ($id) {
-            $stmt = $db->prepare("UPDATE pengumuman SET judul=:judul, isi=:isi, is_active=:is_active WHERE id_pengumuman=:id");
-            $stmt->bindParam(':id', $id);
-        } else {
-            $stmt = $db->prepare("INSERT INTO pengumuman (judul, isi, is_active) VALUES (:judul, :isi, :is_active)");
-        }
-        $stmt->bindParam(':judul', $judul);
-        $stmt->bindParam(':isi', $isi);
-        $stmt->bindParam(':is_active', $is_active);
+        try {
+            if ($id) {
+                $stmt = $db->prepare("UPDATE pengumuman SET judul=:judul, isi_pengumuman=:isi, is_active=:is_active WHERE id_pengumuman=:id");
+                $stmt->bindParam(':id', $id);
+            } else {
+                $stmt = $db->prepare("INSERT INTO pengumuman (judul, isi_pengumuman, is_active) VALUES (:judul, :isi, :is_active)");
+            }
+            $stmt->bindParam(':judul', $judul);
+            $stmt->bindParam(':isi', $isi);
+            $stmt->bindParam(':is_active', $is_active);
 
-        if ($stmt->execute()) {
-            echo json_encode(['status' => 'success', 'message' => 'Pengumuman berhasil disimpan.']);
-        } else {
-            echo json_encode(['status' => 'error', 'message' => 'Gagal menyimpan pengumuman.']);
+            if ($stmt->execute()) {
+                catat_log($id ? 'UPDATE' : 'CREATE', 'Pengumuman', ($id ? 'Mengubah' : 'Menambahkan') . ' pengumuman: ' . $judul);
+                echo json_encode(['status' => 'success', 'message' => 'Pengumuman berhasil disimpan.']);
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'Gagal menyimpan pengumuman.']);
+            }
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Kesalahan database: ' . $e->getMessage()]);
         }
     }
     
@@ -411,10 +602,23 @@ class Superadmin extends Controller {
         $stmt = $db->prepare("DELETE FROM pengumuman WHERE id_pengumuman = :id");
         $stmt->bindParam(':id', $id);
         if ($stmt->execute()) {
+            catat_log('DELETE', 'Pengumuman', 'Menghapus pengumuman ID ' . $id);
             echo json_encode(['status' => 'success', 'message' => 'Pengumuman berhasil dihapus.']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Gagal menghapus pengumuman.']);
         }
+    }
+
+    // ==================== LOG AKTIVITAS ====================
+    public function audit_log() {
+        $data['judul'] = 'Log Aktivitas Sistem | PT REN';
+        $auditModel = $this->model('Audit');
+        
+        $data['logs'] = $auditModel->getSemuaLog();
+
+        $this->view('layouts/header', $data);
+        $this->view('superadmin/audit_log', $data);
+        $this->view('layouts/footer');
     }
 
     // ==================== HELPER ====================

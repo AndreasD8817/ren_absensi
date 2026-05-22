@@ -39,8 +39,8 @@ class User {
 
         $hash = password_hash($data['password'], PASSWORD_BCRYPT);
         $stmt = $this->db->prepare("
-            INSERT INTO users (id_cabang, nip, nama_lengkap, jabatan, password, role, gaji_pokok, status_pajak, tunj_jabatan, tunj_transportasi, tunj_makan, tunj_kehadiran, tunj_lainnya)
-            VALUES (:id_cabang, :nip, :nama, :jabatan, :password, :role, :gaji, :status_pajak, :tunj_jab, :tunj_trans, :tunj_mak, :tunj_hadir, :tunj_lain)
+            INSERT INTO users (id_cabang, nip, nama_lengkap, jabatan, password, role, gaji_pokok, status_pajak, saldo_awal_pph21, tunj_jabatan, tunj_transportasi, tunj_makan, tunj_kehadiran, tunj_lainnya)
+            VALUES (:id_cabang, :nip, :nama, :jabatan, :password, :role, :gaji, :status_pajak, :saldo_awal_pph21, :tunj_jab, :tunj_trans, :tunj_mak, :tunj_hadir, :tunj_lain)
         ");
         $stmt->bindParam(':id_cabang', $data['id_cabang']);
         $stmt->bindParam(':nip',       $data['nip']);
@@ -51,6 +51,7 @@ class User {
         $stmt->bindParam(':gaji',      $data['gaji_pokok']);
         
         $stmt->bindParam(':status_pajak', $data['status_pajak']);
+        $stmt->bindParam(':saldo_awal_pph21', $data['saldo_awal_pph21']);
         $stmt->bindParam(':tunj_jab',     $data['tunj_jabatan']);
         $stmt->bindParam(':tunj_trans',   $data['tunj_transportasi']);
         $stmt->bindParam(':tunj_mak',     $data['tunj_makan']);
@@ -70,7 +71,7 @@ class User {
             $hash = password_hash($data['password'], PASSWORD_BCRYPT);
             $stmt = $this->db->prepare("
                 UPDATE users SET id_cabang=:id_cabang, nip=:nip, nama_lengkap=:nama, jabatan=:jabatan,
-                password=:password, role=:role, gaji_pokok=:gaji, status_pajak=:status_pajak, 
+                password=:password, role=:role, gaji_pokok=:gaji, status_pajak=:status_pajak, saldo_awal_pph21=:saldo_awal_pph21,
                 tunj_jabatan=:tunj_jab, tunj_transportasi=:tunj_trans, tunj_makan=:tunj_mak, 
                 tunj_kehadiran=:tunj_hadir, tunj_lainnya=:tunj_lain 
                 WHERE id_user=:id
@@ -79,7 +80,7 @@ class User {
         } else {
             $stmt = $this->db->prepare("
                 UPDATE users SET id_cabang=:id_cabang, nip=:nip, nama_lengkap=:nama, jabatan=:jabatan,
-                role=:role, gaji_pokok=:gaji, status_pajak=:status_pajak, 
+                role=:role, gaji_pokok=:gaji, status_pajak=:status_pajak, saldo_awal_pph21=:saldo_awal_pph21,
                 tunj_jabatan=:tunj_jab, tunj_transportasi=:tunj_trans, tunj_makan=:tunj_mak, 
                 tunj_kehadiran=:tunj_hadir, tunj_lainnya=:tunj_lain 
                 WHERE id_user=:id
@@ -93,6 +94,7 @@ class User {
         $stmt->bindParam(':gaji',      $data['gaji_pokok']);
         
         $stmt->bindParam(':status_pajak', $data['status_pajak']);
+        $stmt->bindParam(':saldo_awal_pph21', $data['saldo_awal_pph21']);
         $stmt->bindParam(':tunj_jab',     $data['tunj_jabatan']);
         $stmt->bindParam(':tunj_trans',   $data['tunj_transportasi']);
         $stmt->bindParam(':tunj_mak',     $data['tunj_makan']);

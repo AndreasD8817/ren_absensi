@@ -25,6 +25,7 @@
                 <i class="fa-solid fa-paper-plane text-primary"></i> Buat Pengajuan Baru
             </h3>
             <form id="form-cuti" onsubmit="submitCuti(event)" class="space-y-4">
+    <?= csrf_field() ?>
                 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Jenis Pengajuan <span class="text-red-500">*</span></label>
@@ -112,7 +113,7 @@
                         <p class="text-[11px] font-medium text-gray-500 mb-1">
                             <?= $tgl_mulai == $tgl_selesai ? $tgl_mulai : "$tgl_mulai - $tgl_selesai" ?>
                         </p>
-                        <p class="text-xs text-gray-600 truncate"><?= htmlspecialchars($c['keterangan']) ?></p>
+                        <p class="text-xs text-gray-600 truncate"><?= esc($c['keterangan']) ?></p>
                     </div>
                 </div>
                 <?php endforeach; ?>

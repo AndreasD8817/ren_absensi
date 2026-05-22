@@ -6,7 +6,7 @@
     <main class="flex-1 overflow-y-auto p-8">
         <header class="mb-8 border-b border-gray-200 pb-4">
             <h2 class="text-2xl font-bold text-gray-800">Pengaturan Cabang</h2>
-            <p class="text-gray-500 text-sm mt-1">Konfigurasi nilai denda khusus untuk <?= htmlspecialchars($cabang['nama_cabang']) ?></p>
+            <p class="text-gray-500 text-sm mt-1">Konfigurasi nilai denda khusus untuk <?= esc($cabang['nama_cabang']) ?></p>
         </header>
 
         <!-- Peringatan -->
@@ -19,12 +19,13 @@
         </div>
 
         <form id="form-pengaturan" onsubmit="simpanPengaturan(event)" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 max-w-4xl">
+    <?= csrf_field() ?>
             
             <h3 class="text-lg font-bold text-gray-800 mb-6 border-b pb-2"><i class="fa-solid fa-map-location-dot text-gray-400 mr-2"></i>Informasi Lokasi (Read-Only)</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 mb-1">Nama Cabang</label>
-                    <input type="text" value="<?= htmlspecialchars($cabang['nama_cabang']) ?>" readonly class="w-full px-3 py-2 border border-gray-200 rounded-xl bg-gray-100 text-gray-600 text-sm cursor-not-allowed">
+                    <input type="text" value="<?= esc($cabang['nama_cabang']) ?>" readonly class="w-full px-3 py-2 border border-gray-200 rounded-xl bg-gray-100 text-gray-600 text-sm cursor-not-allowed">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 mb-1">Koordinat (Lat, Long)</label>
@@ -68,11 +69,16 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-orange-50 border border-orange-200 rounded-2xl mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-5 bg-orange-50 border border-orange-200 rounded-2xl mb-8">
                 <div>
                     <label class="block text-xs font-bold text-red-700 mb-1">Denda Tidak Hadir (Alfa)</label>
                     <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-red-400 text-sm font-semibold">Rp</span>
                     <input type="number" name="denda_alfa" value="<?= $cabang['denda_alfa'] ?>" required class="w-full pl-10 pr-3 py-2 border border-red-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-none text-sm bg-white"></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-orange-700 mb-1">Tidak Absen Pulang</label>
+                    <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400 text-sm font-semibold">Rp</span>
+                    <input type="number" name="denda_tidak_absen_pulang" value="<?= $cabang['denda_tidak_absen_pulang'] ?>" required class="w-full pl-10 pr-3 py-2 border border-orange-300 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none text-sm bg-white"></div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-blue-700 mb-1">Tarif Lembur (Per Jam)</label>

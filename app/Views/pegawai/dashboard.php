@@ -1,22 +1,56 @@
-<!-- Container utama mode Mobile -->
-<div class="max-w-md mx-auto bg-gray-50 min-h-screen relative pb-24 shadow-lg border-x border-gray-200">
+<!-- Wrapper untuk Background Desktop ala Login -->
+<div class="min-h-screen bg-gray-100 flex flex-col sm:justify-center sm:py-12 bg-cover bg-center relative" style="background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');">
+    <!-- Overlay gelap -->
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-900/90 via-blue-900/80 to-[#A3195A]/80 backdrop-blur-sm"></div>
+
+    <!-- Container utama mode Mobile -->
+    <div class="w-full max-w-md mx-auto bg-gray-50 min-h-screen sm:min-h-[85vh] sm:rounded-[30px] sm:overflow-hidden relative pb-24 shadow-2xl border-x sm:border border-gray-200 z-10">
     
     <!-- Header / Profil -->
-    <div class="bg-primary rounded-b-[40px] px-6 pt-10 pb-16 text-white shadow-xl">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-2xl font-bold">Halo, <?= htmlspecialchars(explode(' ', $_SESSION['user']['nama_lengkap'])[0]) ?>!</h1>
-                <p class="text-blue-200 text-sm mt-1"><?= htmlspecialchars($_SESSION['user']['jabatan']) ?></p>
-            </div>
-            <div class="w-14 h-14 rounded-full bg-white/20 p-1 flex items-center justify-center backdrop-blur-sm border border-white/30">
-                <img src="https://ui-avatars.com/api/?name=<?= urlencode($_SESSION['user']['nama_lengkap']) ?>&background=random" alt="Profil" class="w-full h-full rounded-full object-cover">
+    <div class="bg-gradient-to-br from-primary via-blue-800 to-[#A3195A] rounded-b-[40px] text-white shadow-xl relative overflow-hidden">
+        <!-- Dekorasi background melengkung abstrak -->
+        <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/10 blur-xl"></div>
+        <div class="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 rounded-full bg-[#A3195A]/40 blur-lg"></div>
+
+        <?php if (!empty($pengumuman)): ?>
+        <!-- Marquee Ticker -->
+        <div class="bg-black/20 backdrop-blur-sm py-2.5 px-6 text-xs flex items-center gap-2 border-b border-white/10 relative z-20">
+            <i class="fa-solid fa-bullhorn text-yellow-300 animate-pulse flex-shrink-0"></i>
+            <div class="flex-1 overflow-hidden relative" style="height: 16px;">
+                <div class="marquee-text whitespace-nowrap text-white/90 font-medium">
+                    <?php 
+                    $text_pengumuman = [];
+                    foreach ($pengumuman as $p) {
+                        $text_pengumuman[] = esc($p['judul']) . ': ' . esc($p['isi']);
+                    }
+                    echo implode(' &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; ', $text_pengumuman);
+                    ?>
+                </div>
             </div>
         </div>
-        
-        <!-- Jam Digital -->
-        <div class="text-center mt-4">
-            <p class="text-sm font-medium text-blue-200 uppercase tracking-wider mb-1" id="current-date"></p>
-            <h2 class="text-5xl font-bold tracking-tight drop-shadow-md" id="current-time">--:--<span class="text-xl ml-1 font-medium">--</span></h2>
+        <style>
+            .marquee-text { display: inline-block; padding-left: 100%; animation: marquee-header 25s linear infinite; }
+            @keyframes marquee-header { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+        </style>
+        <?php endif; ?>
+
+        <!-- Inner Content (Profil & Jam) -->
+        <div class="px-6 pt-8 pb-16 relative z-10">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-2xl font-bold">Halo, <?= esc(explode(' ', $_SESSION['user']['nama_lengkap'])[0]) ?>!</h1>
+                    <p class="text-blue-100 text-sm mt-1"><?= esc($_SESSION['user']['jabatan']) ?></p>
+                </div>
+                <div class="w-14 h-14 rounded-full bg-white/20 p-1 flex items-center justify-center backdrop-blur-sm border border-white/30">
+                    <img src="<?= BASE_URL ?>/img/logo.png" alt="Logo REN" class="w-full h-full rounded-full object-contain bg-white">
+                </div>
+            </div>
+            
+            <!-- Jam Digital -->
+            <div class="text-center mt-4">
+                <p class="text-sm font-medium text-blue-100 uppercase tracking-wider mb-1" id="current-date"></p>
+                <h2 class="text-5xl font-bold tracking-tight drop-shadow-md" id="current-time">--:--<span class="text-xl ml-1 font-medium">--</span></h2>
+            </div>
         </div>
     </div>
 
@@ -29,29 +63,6 @@
         $sudah_masuk = !empty($absen['jam_masuk']);
         $sudah_pulang = !empty($absen['jam_pulang']);
         ?>
-
-        <?php if (!empty($pengumuman)): ?>
-        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 shadow-sm flex items-center gap-3 overflow-hidden">
-            <div class="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-white flex-shrink-0 animate-pulse">
-                <i class="fa-solid fa-bullhorn text-sm"></i>
-            </div>
-            <div class="flex-1 overflow-hidden relative" style="height: 20px;">
-                <div class="marquee-text whitespace-nowrap text-xs font-bold text-yellow-800">
-                    <?php 
-                    $text_pengumuman = [];
-                    foreach ($pengumuman as $p) {
-                        $text_pengumuman[] = $p['judul'] . ': ' . $p['isi'];
-                    }
-                    echo implode(' &nbsp; | &nbsp; ', $text_pengumuman);
-                    ?>
-                </div>
-            </div>
-        </div>
-        <style>
-            .marquee-text { display: inline-block; padding-left: 100%; animation: marquee 15s linear infinite; }
-            @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
-        </style>
-        <?php endif; ?>
 
         <!-- Kartu Status Absen Hari Ini -->
         <div class="bg-white rounded-2xl shadow-lg p-5 mb-6 border border-gray-100">
@@ -88,7 +99,7 @@
         <div class="grid grid-cols-2 gap-4 mb-6">
             <!-- Tombol Absen Masuk: disable jika sudah masuk -->
             <?php if (!$sudah_masuk): ?>
-                <a href="<?= BASE_URL ?>/pegawai/kamera/masuk" class="bg-gradient-to-br from-secondary to-primary text-white rounded-2xl p-4 shadow-lg flex flex-col items-center gap-3 transition-transform active:scale-95">
+                <a href="<?= BASE_URL ?>/pegawai/kamera/masuk" class="bg-gradient-to-r from-primary to-[#A3195A] text-white rounded-2xl p-4 shadow-lg shadow-[#A3195A]/20 flex flex-col items-center gap-3 transition-transform hover:from-blue-800 hover:to-[#8a154c] active:scale-95">
                     <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                         <i class="fa-solid fa-right-to-bracket text-xl"></i>
                     </div>
@@ -105,9 +116,9 @@
 
             <!-- Tombol Absen Pulang: aktif hanya jika sudah masuk dan belum pulang -->
             <?php if ($sudah_masuk && !$sudah_pulang): ?>
-                <a href="<?= BASE_URL ?>/pegawai/kamera/pulang" class="bg-white text-primary border-2 border-primary rounded-2xl p-4 shadow-sm flex flex-col items-center gap-3 transition-transform active:scale-95">
-                    <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
-                        <i class="fa-solid fa-right-from-bracket text-xl text-primary"></i>
+                <a href="<?= BASE_URL ?>/pegawai/kamera/pulang" class="bg-white text-[#A3195A] border-2 border-[#A3195A] rounded-2xl p-4 shadow-sm flex flex-col items-center gap-3 transition-transform hover:bg-gray-50 active:scale-95">
+                    <div class="w-12 h-12 bg-[#A3195A]/10 rounded-full flex items-center justify-center">
+                        <i class="fa-solid fa-right-from-bracket text-xl text-[#A3195A]"></i>
                     </div>
                     <span class="font-semibold text-center text-sm">Absen Pulang</span>
                 </a>
@@ -191,20 +202,20 @@
     <?php endif; ?>
 
     <!-- Bottom Navigation Bar -->
-    <div class="fixed bottom-0 max-w-md w-full bg-white border-t border-gray-200 rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)] px-4 py-3 flex justify-between items-center z-50">
-        <a href="<?= BASE_URL ?>/pegawai" class="flex flex-col items-center gap-1 text-primary transition-colors">
-            <div class="p-2 bg-blue-50 rounded-xl"><i class="fa-solid fa-house text-lg"></i></div>
+    <div class="fixed sm:absolute bottom-0 max-w-md w-full bg-white border-t border-gray-200 rounded-t-3xl sm:rounded-b-[30px] sm:rounded-t-none shadow-[0_-10px_40px_rgba(0,0,0,0.05)] px-4 py-3 flex justify-between items-center z-50">
+        <a href="<?= BASE_URL ?>/pegawai" class="flex flex-col items-center gap-1 text-[#A3195A] transition-colors">
+            <div class="p-2 bg-[#A3195A]/10 rounded-xl"><i class="fa-solid fa-house text-lg"></i></div>
             <span class="text-[10px] font-semibold">Home</span>
         </a>
-        <a href="<?= BASE_URL ?>/pegawai/penggajian" class="flex flex-col items-center gap-1 text-gray-400 hover:text-primary transition-colors">
+        <a href="<?= BASE_URL ?>/pegawai/penggajian" class="flex flex-col items-center gap-1 text-gray-400 hover:text-[#A3195A] transition-colors">
             <div class="p-2"><i class="fa-solid fa-file-invoice-dollar text-lg"></i></div>
             <span class="text-[10px] font-medium">Slip Gaji</span>
         </a>
-        <a href="<?= BASE_URL ?>/pegawai/lembur" class="flex flex-col items-center gap-1 text-gray-400 hover:text-primary transition-colors">
+        <a href="<?= BASE_URL ?>/pegawai/lembur" class="flex flex-col items-center gap-1 text-gray-400 hover:text-[#A3195A] transition-colors">
             <div class="p-2"><i class="fa-solid fa-user-clock text-lg"></i></div>
             <span class="text-[10px] font-medium">Lembur</span>
         </a>
-        <a href="<?= BASE_URL ?>/pegawai/cuti" class="flex flex-col items-center gap-1 text-gray-400 hover:text-primary transition-colors">
+        <a href="<?= BASE_URL ?>/pegawai/cuti" class="flex flex-col items-center gap-1 text-gray-400 hover:text-[#A3195A] transition-colors">
             <div class="p-2"><i class="fa-solid fa-calendar-alt text-lg"></i></div>
             <span class="text-[10px] font-medium">Cuti</span>
         </a>
@@ -214,7 +225,8 @@
         </a>
     </div>
 
-</div>
+    </div> <!-- End Container Utama -->
+</div> <!-- End Wrapper Background -->
 
 <!-- Script Interaksi -->
 <script>

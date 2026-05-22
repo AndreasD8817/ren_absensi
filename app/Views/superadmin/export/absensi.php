@@ -12,6 +12,8 @@ $bulan_str = $nama_bulan[(int)$bulan];
 <html>
 <head>
     <title><?= $judul ?></title>
+    <!-- Favicon -->
+    <link rel="icon" href="<?= BASE_URL ?>/img/logo.png" type="image/png">
     <?php if ($format === 'pdf'): ?>
     <style>
         body { font-family: sans-serif; font-size: 12px; }
@@ -67,10 +69,10 @@ $bulan_str = $nama_bulan[(int)$bulan];
                 <?php $no = 1; foreach ($absensi as $a): ?>
                 <tr>
                     <td><?= $no++ ?></td>
-                    <td><?= htmlspecialchars($a['nama_cabang']) ?></td>
-                    <td><?= htmlspecialchars($a['nip']) ?></td>
-                    <td><?= htmlspecialchars($a['nama_lengkap']) ?></td>
-                    <td><?= htmlspecialchars($a['jabatan']) ?></td>
+                    <td><?= esc($a['nama_cabang']) ?></td>
+                    <td><?= esc($a['nip']) ?></td>
+                    <td><?= esc($a['nama_lengkap']) ?></td>
+                    <td><?= esc($a['jabatan']) ?></td>
                     <td class="text-center"><?= $a['total_hadir'] ?></td>
                     <td class="text-center"><?= $a['total_telat'] ?></td>
                     <td class="text-center"><?= $a['total_menit_terlambat'] ?? 0 ?> m</td>

@@ -64,7 +64,7 @@ $nama_bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agus
                         </div>
                         <div>
                             <div class="flex items-center gap-2 mb-1">
-                                <h3 class="font-bold text-gray-800 text-lg"><?= htmlspecialchars($ins['nama_cabang']) ?></h3>
+                                <h3 class="font-bold text-gray-800 text-lg"><?= esc($ins['nama_cabang']) ?></h3>
                                 <?php if ($ins['status'] === 'published'): ?>
                                 <span class="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full"><i class="fa-solid fa-check-circle mr-1"></i>Published</span>
                                 <?php else: ?>
@@ -88,11 +88,11 @@ $nama_bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agus
                             ≈ <b class="text-gray-700">Rp <?= $ins['jumlah_penerima'] > 0 ? number_format($ins['total_nilai']/$ins['jumlah_penerima'],0,',','.') : 0 ?></b> per orang
                         </p>
                         <div class="flex gap-2 mt-1">
-                            <button onclick="lihatDetail(<?= $ins['id_insentif'] ?>, '<?= htmlspecialchars($ins['nama_cabang']) ?>')" class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-blue-50 text-primary rounded-lg hover:bg-blue-100 transition-colors">
+                            <button onclick="lihatDetail(<?= $ins['id_insentif'] ?>, '<?= esc($ins['nama_cabang']) ?>')" class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-blue-50 text-primary rounded-lg hover:bg-blue-100 transition-colors">
                                 <i class="fa-solid fa-list-ul"></i> Detail
                             </button>
                             <?php if ($ins['status'] === 'draft'): ?>
-                            <button onclick="publishInsentif(<?= $ins['id_insentif'] ?>, '<?= htmlspecialchars($ins['nama_cabang']) ?>')" class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors">
+                            <button onclick="publishInsentif(<?= $ins['id_insentif'] ?>, '<?= esc($ins['nama_cabang']) ?>')" class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors">
                                 <i class="fa-solid fa-paper-plane"></i> Publish
                             </button>
                             <button onclick="hapusInsentif(<?= $ins['id_insentif'] ?>)" class="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors">
@@ -118,12 +118,13 @@ $nama_bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agus
             <button onclick="tutupModal()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
         <form id="form-insentif" onsubmit="submitInsentif(event)" class="p-6 space-y-4">
+    <?= csrf_field() ?>
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Cabang Penerima *</label>
                 <select name="id_cabang" required class="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
                     <option value="">-- Pilih Cabang --</option>
                     <?php foreach ($cabang as $c): ?>
-                    <option value="<?= $c['id_cabang'] ?>"><?= htmlspecialchars($c['nama_cabang']) ?></option>
+                    <option value="<?= $c['id_cabang'] ?>"><?= esc($c['nama_cabang']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -253,7 +254,7 @@ $nama_bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agus
         if (!isConfirmed) return;
 
         const resp = await fetch('<?= BASE_URL ?>/superadmin/publish_insentif', {
-            method: 'POST', body: new URLSearchParams({ id_insentif: id })
+            method: 'POST', body: new URLSearchParams({ id_insentif: id, csrf_token: '<?= csrf_token() ?>' })
         });
         const data = await resp.json();
         if (data.status === 'success') Swal.fire('Berhasil!', data.message, 'success').then(() => location.reload());
@@ -269,7 +270,7 @@ $nama_bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agus
         if (!isConfirmed) return;
 
         const resp = await fetch('<?= BASE_URL ?>/superadmin/hapus_insentif', {
-            method: 'POST', body: new URLSearchParams({ id_insentif: id })
+            method: 'POST', body: new URLSearchParams({ id_insentif: id, csrf_token: '<?= csrf_token() ?>' })
         });
         const data = await resp.json();
         if (data.status === 'success') Swal.fire('Berhasil!', data.message, 'success').then(() => location.reload());

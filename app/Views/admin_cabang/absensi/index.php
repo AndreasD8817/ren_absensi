@@ -2,10 +2,10 @@
 $nama_bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 $base_foto = BASE_URL . '/uploads/';
 ?>
-<!-- Halaman Absensi - Superadmin -->
+<!-- Halaman Absensi - Admin Cabang -->
 <div class="flex h-screen overflow-hidden bg-gray-50">
 
-    <?php include_once APP_PATH . '/Views/superadmin/_sidebar.php'; ?>
+    <?php include_once APP_PATH . '/Views/admin_cabang/_sidebar.php'; ?>
 
     <main class="flex-1 overflow-y-auto p-8">
         <!-- Header + Filter -->
@@ -14,7 +14,7 @@ $base_foto = BASE_URL . '/uploads/';
                 <h2 class="text-2xl font-bold text-gray-800">Data Absensi Pegawai</h2>
                 <p class="text-gray-500 text-sm mt-1">Rekapitulasi kehadiran, keterlambatan, dan alfa bulanan</p>
             </div>
-            <form method="GET" action="<?= BASE_URL ?>/superadmin/absensi" class="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
+            <form method="GET" action="<?= BASE_URL ?>/admincabang/absensi" class="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
                 <select name="bulan" class="text-sm border-0 outline-none focus:ring-0 font-semibold text-gray-700 bg-transparent">
                     <?php for ($i = 1; $i <= 12; $i++): ?>
                     <option value="<?= $i ?>" <?= $i == $bulan ? 'selected' : '' ?>><?= $nama_bulan[$i] ?></option>
@@ -25,27 +25,10 @@ $base_foto = BASE_URL . '/uploads/';
                     <option value="<?= $y ?>" <?= $y == $tahun ? 'selected' : '' ?>><?= $y ?></option>
                     <?php endfor; ?>
                 </select>
-                <select name="id_cabang" class="text-sm border-0 outline-none focus:ring-0 font-semibold text-gray-700 bg-transparent border-l border-gray-200 pl-3">
-                    <option value="">Semua Cabang</option>
-                    <?php foreach ($list_cabang as $c): ?>
-                    <option value="<?= $c['id_cabang'] ?>" <?= isset($id_cabang) && $c['id_cabang'] == $id_cabang ? 'selected' : '' ?>><?= esc($c['nama_cabang']) ?></option>
-                    <?php endforeach; ?>
-                </select>
                 <button type="submit" class="px-4 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-blue-800 transition-colors">Tampilkan</button>
             </form>
         </div>
 
-        <!-- Tombol Export -->
-        <div class="flex justify-end mb-4">
-            <div class="flex gap-2">
-                <a href="<?= BASE_URL ?>/superadmin/export_absensi?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&format=excel" class="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 text-sm font-bold rounded-xl hover:bg-green-200 transition-colors">
-                    <i class="fa-solid fa-file-excel"></i> Export Excel
-                </a>
-                <a href="<?= BASE_URL ?>/superadmin/export_absensi?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>&format=pdf" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 text-sm font-bold rounded-xl hover:bg-red-200 transition-colors">
-                    <i class="fa-solid fa-file-pdf"></i> Export PDF
-                </a>
-            </div>
-        </div>
 
         <!-- Tabel Rekap Absensi -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -154,7 +137,7 @@ $base_foto = BASE_URL . '/uploads/';
                         <th class="text-center px-4 py-3 font-bold text-gray-500 uppercase">Jam Pulang</th>
                         <th class="text-center px-4 py-3 font-bold text-gray-500 uppercase">Menit Telat</th>
                         <th class="text-center px-4 py-3 font-bold text-gray-500 uppercase">Bukti</th>
-                        <th class="text-right px-4 py-3 font-bold text-gray-500 uppercase">Edit</th>
+
                     </tr>
                 </thead>
                 <tbody id="tbody-detail" class="divide-y divide-gray-100">
@@ -165,44 +148,7 @@ $base_foto = BASE_URL . '/uploads/';
     </div>
 </div>
 
-<!-- Modal Edit Absensi -->
-<div id="modal-edit" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/60 backdrop-blur-sm">
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4">
-        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-3xl">
-            <h3 class="font-bold text-gray-800">Edit Data Absensi</h3>
-            <button onclick="tutupModal('modal-edit')" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
-        </div>
-        <form id="form-edit" onsubmit="simpanEdit(event)" class="p-6 space-y-4">
-    <?= csrf_field() ?>
-            <input type="hidden" name="id_absensi" id="edit-id_absensi">
-            
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Status</label>
-                <select name="status" id="edit-status" onchange="toggleJamFields(this.value)" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary">
-                    <option value="hadir">Hadir</option>
-                    <option value="telat">Terlambat</option>
-                    <option value="alfa">Alfa (Tidak Hadir)</option>
-                </select>
-            </div>
 
-            <div id="jam-fields">
-                <div class="mb-4">
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Jam Masuk</label>
-                    <input type="time" name="jam_masuk" id="edit-jam_masuk" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary text-gray-700">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">Jam Pulang</label>
-                    <input type="time" name="jam_pulang" id="edit-jam_pulang" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary text-gray-700">
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-3 pt-2">
-                <button type="button" onclick="tutupModal('modal-edit')" class="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-semibold text-sm hover:bg-gray-200">Batal</button>
-                <button type="submit" id="btn-simpan-edit" class="px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-blue-800">Simpan</button>
-            </div>
-        </form>
-    </div>
-</div>
 
 <!-- Modal Foto Preview -->
 <div id="modal-foto" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80" onclick="tutupModal('modal-foto')">
@@ -240,7 +186,7 @@ async function lihatDetail(id_user, nama) {
     document.getElementById('tbody-detail').innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Memuat data...</td></tr>';
     bukaModal('modal-detail');
 
-    const resp = await fetch(`${BASE_URL}/superadmin/detail_absensi_user?id_user=${id_user}&bulan=${BULAN}&tahun=${TAHUN}`);
+    const resp = await fetch(`${BASE_URL}/admincabang/detail_absensi_user?id_user=${id_user}&bulan=${BULAN}&tahun=${TAHUN}`);
     const json = await resp.json();
 
     if (!json.data || json.data.length === 0) {
@@ -282,53 +228,12 @@ async function lihatDetail(id_user, nama) {
             <td class="px-4 py-3 text-center">
                 <div class="flex flex-row items-center justify-center gap-2">${buktiFoto}</div>
             </td>
-            <td class="px-4 py-3 text-right print:hidden">
-                <button onclick='bukaEdit(${JSON.stringify(a)})' class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 inline-flex items-center justify-center transition-colors">
-                    <i class="fa-solid fa-pen text-xs"></i>
-                </button>
-            </td>
         </tr>`;
     });
     document.getElementById('tbody-detail').innerHTML = rows;
 }
 
-function bukaEdit(a) {
-    document.getElementById('edit-id_absensi').value = a.id_absensi;
-    document.getElementById('edit-status').value = a.status;
-    document.getElementById('edit-jam_masuk').value = a.jam_masuk ? a.jam_masuk.substring(0,5) : '';
-    document.getElementById('edit-jam_pulang').value = a.jam_pulang ? a.jam_pulang.substring(0,5) : '';
-    toggleJamFields(a.status);
-    bukaModal('modal-edit');
-}
 
-function toggleJamFields(status) {
-    const fields = document.getElementById('jam-fields');
-    fields.style.display = status === 'alfa' ? 'none' : 'block';
-}
-
-async function simpanEdit(e) {
-    e.preventDefault();
-    const btn = document.getElementById('btn-simpan-edit');
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-    btn.disabled = true;
-
-    const resp = await fetch(`${BASE_URL}/superadmin/edit_absensi`, {
-        method: 'POST', body: new FormData(document.getElementById('form-edit'))
-    });
-    const data = await resp.json();
-
-    if (data.status === 'success') {
-        tutupModal('modal-edit');
-        // Reload detail modal
-        const nama = document.getElementById('modal-detail-nama').textContent.replace('Detail: ', '');
-        await lihatDetail(currentUserId, nama);
-        Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1500, showConfirmButton: false });
-    } else {
-        Swal.fire('Gagal', data.message, 'error');
-        btn.innerHTML = 'Simpan';
-        btn.disabled = false;
-    }
-}
 
 function previewFoto(src) {
     document.getElementById('foto-preview').src = src;

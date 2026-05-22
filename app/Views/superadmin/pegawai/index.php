@@ -50,13 +50,13 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                                 <div class="flex items-center gap-3">
                                     <img src="https://ui-avatars.com/api/?name=<?= urlencode($p['nama_lengkap']) ?>&size=40&background=random" class="w-9 h-9 rounded-full" alt="">
                                     <div>
-                                        <p class="font-semibold text-gray-800"><?= htmlspecialchars($p['nama_lengkap']) ?></p>
-                                        <p class="text-gray-400 text-xs"><?= htmlspecialchars($p['jabatan'] ?? '-') ?></p>
+                                        <p class="font-semibold text-gray-800"><?= esc($p['nama_lengkap']) ?></p>
+                                        <p class="text-gray-400 text-xs"><?= esc($p['jabatan'] ?? '-') ?></p>
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 font-mono text-gray-600"><?= htmlspecialchars($p['nip']) ?></td>
-                            <td class="px-6 py-4 text-gray-600"><?= htmlspecialchars($p['nama_cabang']) ?></td>
+                            <td class="px-6 py-4 font-mono text-gray-600"><?= esc($p['nip']) ?></td>
+                            <td class="px-6 py-4 text-gray-600"><?= esc($p['nama_cabang']) ?></td>
                             <td class="px-6 py-4 font-semibold text-gray-700">Rp <?= number_format($p['gaji_pokok'], 0, ',', '.') ?></td>
                             <td class="px-6 py-4">
                                 <?php $rc = $p['role']==='superadmin'?'bg-purple-100 text-purple-700':($p['role']==='admin_cabang'?'bg-orange-100 text-orange-700':'bg-blue-100 text-blue-700'); ?>
@@ -96,6 +96,7 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
             <button onclick="tutupModal('modal-tambah')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
         <form id="form-tambah" onsubmit="submitTambah(event)" class="p-6 space-y-4">
+    <?= csrf_field() ?>
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">NIP *</label>
@@ -129,7 +130,7 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Cabang *</label>
                     <select name="id_cabang" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                         <?php foreach ($semua_cabang as $c): ?>
-                        <option value="<?= $c['id_cabang'] ?>"><?= htmlspecialchars($c['nama_cabang']) ?></option>
+                        <option value="<?= $c['id_cabang'] ?>"><?= esc($c['nama_cabang']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -141,7 +142,7 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
             
             <div class="border-t border-gray-200 pt-4 mt-2">
                 <h4 class="text-sm font-bold text-gray-700 mb-3">Tunjangan & Pajak</h4>
-                <div class="grid grid-cols-3 gap-4 mb-4">
+                <div class="grid grid-cols-4 gap-4 mb-4">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Status Pajak *</label>
                         <select name="status_pajak" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
@@ -150,11 +151,15 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                         </select>
                     </div>
                     <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1" title="Pajak yang sudah dibayar tahun ini">Saldo PPh 21</label>
+                        <input name="saldo_awal_pph21" type="number" value="0" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                    <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Jabatan</label>
                         <input name="tunj_jabatan" type="number" value="0" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Transportasi</label>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Transport</label>
                         <input name="tunj_transportasi" type="number" value="0" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
                     </div>
                 </div>
@@ -189,6 +194,7 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
             <button onclick="tutupModal('modal-edit')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
         <form id="form-edit" onsubmit="submitEdit(event)" class="p-6 space-y-4">
+    <?= csrf_field() ?>
             <input type="hidden" name="id_user" id="edit-id_user">
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -223,7 +229,7 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Cabang *</label>
                     <select name="id_cabang" id="edit-id_cabang" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                         <?php foreach ($semua_cabang as $c): ?>
-                        <option value="<?= $c['id_cabang'] ?>"><?= htmlspecialchars($c['nama_cabang']) ?></option>
+                        <option value="<?= $c['id_cabang'] ?>"><?= esc($c['nama_cabang']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -235,7 +241,7 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
             
             <div class="border-t border-gray-200 pt-4 mt-2">
                 <h4 class="text-sm font-bold text-gray-700 mb-3">Tunjangan & Pajak</h4>
-                <div class="grid grid-cols-3 gap-4 mb-4">
+                <div class="grid grid-cols-4 gap-4 mb-4">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Status Pajak *</label>
                         <select name="status_pajak" id="edit-status_pajak" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
@@ -244,11 +250,15 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                         </select>
                     </div>
                     <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1" title="Pajak yang sudah dibayar tahun ini">Saldo PPh 21</label>
+                        <input name="saldo_awal_pph21" id="edit-saldo_awal_pph21" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                    <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Jabatan</label>
                         <input name="tunj_jabatan" id="edit-tunj_jabatan" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Transportasi</label>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Transport</label>
                         <input name="tunj_transportasi" id="edit-tunj_transportasi" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
                     </div>
                 </div>
@@ -298,8 +308,9 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
         document.getElementById('edit-id_cabang').value = data.id_cabang;
         document.getElementById('edit-gaji').value     = data.gaji_pokok;
         
-        document.getElementById('edit-status_pajak').value       = data.status_pajak || 'TK/0';
-        document.getElementById('edit-tunj_jabatan').value       = data.tunj_jabatan || 0;
+        document.getElementById('edit-status_pajak').value = data.status_pajak || 'TK/0';
+        document.getElementById('edit-saldo_awal_pph21').value = data.saldo_awal_pph21 || 0;
+        document.getElementById('edit-tunj_jabatan').value = data.tunj_jabatan || 0;
         document.getElementById('edit-tunj_transportasi').value  = data.tunj_transportasi || 0;
         document.getElementById('edit-tunj_makan').value         = data.tunj_makan || 0;
         document.getElementById('edit-tunj_kehadiran').value     = data.tunj_kehadiran || 0;
@@ -355,7 +366,7 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
         }).then(async (result) => {
             if (result.isConfirmed) {
                 const resp = await fetch('<?= BASE_URL ?>/superadmin/toggle_pegawai', {
-                    method: 'POST', body: new URLSearchParams({ id_user: id })
+                    method: 'POST', body: new URLSearchParams({ id_user: id, csrf_token: '<?= csrf_token() ?>' })
                 });
                 const data = await resp.json();
                 if (data.status === 'success') {

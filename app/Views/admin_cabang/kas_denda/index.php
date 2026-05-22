@@ -49,7 +49,7 @@
                             <?php foreach ($riwayat as $trx): ?>
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 text-gray-600"><?= date('d M Y', strtotime($trx['tanggal'])) ?></td>
-                                <td class="px-6 py-4 font-medium text-gray-800"><?= htmlspecialchars($trx['keterangan']) ?></td>
+                                <td class="px-6 py-4 font-medium text-gray-800"><?= esc($trx['keterangan']) ?></td>
                                 <td class="px-6 py-4">
                                     <?php if ($trx['jenis'] == 'pemasukan'): ?>
                                         <span class="px-2.5 py-1 bg-green-100 text-green-700 text-[11px] font-bold rounded-full">Pemasukan (Dari Gaji)</span>

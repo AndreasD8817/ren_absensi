@@ -41,7 +41,7 @@
                                         <?= date('d M Y', strtotime($l['tanggal'])) ?>
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-gray-600 font-medium"><?= htmlspecialchars($l['keterangan']) ?></td>
+                                <td class="px-6 py-4 text-gray-600 font-medium"><?= esc($l['keterangan']) ?></td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex items-center justify-end gap-2">
                                         <button onclick='editLibur(<?= json_encode($l) ?>)' class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors">
@@ -72,6 +72,7 @@
             </button>
         </div>
         <form id="form-libur" onsubmit="simpanLibur(event)" class="p-6">
+    <?= csrf_field() ?>
             <input type="hidden" name="id_libur" id="id_libur">
             
             <div class="mb-4">
@@ -102,6 +103,7 @@
             </button>
         </div>
         <form id="form-import" onsubmit="importCsv(event)" class="p-6">
+    <?= csrf_field() ?>
             <div class="mb-4">
                 <div class="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg border border-blue-100 mb-4">
                     <strong>Format CSV:</strong> Kolom 1 (Tanggal YYYY-MM-DD), Kolom 2 (Keterangan). Pastikan memiliki header di baris pertama.<br><br>
@@ -214,7 +216,7 @@
             confirmButtonText: 'Ya, Hapus!'
         }).then(async (result) => {
             if (result.isConfirmed) {
-                const resp = await fetch('<?= BASE_URL ?>/superadmin/hapus_libur_nasional/' + id, { method: 'POST' });
+                const resp = await fetch('<?= BASE_URL ?>/superadmin/hapus_libur_nasional/' + id, { method: 'POST', body: new URLSearchParams({ csrf_token: '<?= csrf_token() ?>' }) });
                 const data = await resp.json();
                 if (data.status === 'success') location.reload();
                 else Swal.fire('Error', data.message, 'error');

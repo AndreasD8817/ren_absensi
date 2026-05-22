@@ -25,6 +25,7 @@
                 <i class="fa-solid fa-clock text-primary"></i> Form Lembur
             </h3>
             <form id="form-lembur" onsubmit="submitLembur(event)" class="space-y-4">
+    <?= csrf_field() ?>
                 
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Tanggal Lembur <span class="text-red-500">*</span></label>
@@ -84,11 +85,11 @@
                         <p class="text-[11px] font-bold text-indigo-500 mb-1">
                             <i class="fa-regular fa-clock mr-1"></i> <?= $jam ?> (<?= $l['durasi_jam'] ?> Jam)
                         </p>
-                        <p class="text-xs text-gray-600 line-clamp-2"><?= htmlspecialchars($l['keterangan']) ?></p>
+                        <p class="text-xs text-gray-600 line-clamp-2"><?= esc($l['keterangan']) ?></p>
                         
                         <?php if ($l['status'] == 'rejected' && $l['alasan_reject']): ?>
                             <div class="mt-2 text-[10px] text-red-500 bg-red-50 p-2 rounded-lg border border-red-100">
-                                <b>Alasan Ditolak:</b> <?= htmlspecialchars($l['alasan_reject']) ?>
+                                <b>Alasan Ditolak:</b> <?= esc($l['alasan_reject']) ?>
                             </div>
                         <?php endif; ?>
                     </div>
