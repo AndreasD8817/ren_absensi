@@ -103,6 +103,9 @@ function isActive($path) {
         <a href="<?= BASE_URL ?>/superadmin/audit_log" class="flex items-center px-4 py-3 <?= isActive('audit_log') ?> rounded-xl font-medium transition-all">
             <i class="fa-solid fa-shield-halved w-5 text-center"></i><span class="ml-3 text-sm sidebar-text">Log Aktivitas</span>
         </a>
+        <a href="<?= BASE_URL ?>/superadmin/backup_data" class="flex items-center px-4 py-3 <?= isActive('backup_data') ?> rounded-xl font-medium transition-all">
+            <i class="fa-solid fa-cloud-arrow-down w-5 text-center"></i><span class="ml-3 text-sm sidebar-text">Backup Data</span>
+        </a>
 
         <div class="text-[10px] font-bold text-blue-300/70 uppercase tracking-widest mt-6 mb-2 px-4 sidebar-text">Master Data</div>
         <a href="<?= BASE_URL ?>/superadmin/data_pegawai" class="flex items-center px-4 py-3 <?= isActive('data_pegawai') ?> rounded-xl font-medium transition-all">

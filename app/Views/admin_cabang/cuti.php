@@ -67,15 +67,17 @@
                                 <td class="py-4 px-6 text-center">
                                     <?php if($c['status'] == 'pending'): ?>
                                     <div class="flex items-center justify-center gap-2">
-                                        <button onclick="responCuti(<?= $c['id_cuti'] ?>, 'approved')" class="w-8 h-8 rounded-lg bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-colors" title="Setujui">
+                                        <button onclick="responCuti(<?= $c['id_cuti'] ?>, 'approved')" class="w-8 h-8 rounded-lg bg-green-50 text-green-600 hover:bg-green-500 hover:text-white transition-colors" title="Setujui (Teruskan ke Pusat)">
                                             <i class="fa-solid fa-check"></i>
                                         </button>
                                         <button onclick="responCuti(<?= $c['id_cuti'] ?>, 'rejected')" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-colors" title="Tolak">
                                             <i class="fa-solid fa-xmark"></i>
                                         </button>
                                     </div>
+                                    <?php elseif($c['status'] == 'menunggu_pusat'): ?>
+                                    <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full"><i class="fa-solid fa-hourglass-half mr-1"></i>Menunggu Pusat</span>
                                     <?php elseif($c['status'] == 'approved'): ?>
-                                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full"><i class="fa-solid fa-check-circle mr-1"></i>Disetujui</span>
+                                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full"><i class="fa-solid fa-check-circle mr-1"></i>Disetujui Pusat</span>
                                     <?php else: ?>
                                     <span class="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full"><i class="fa-solid fa-times-circle mr-1"></i>Ditolak</span>
                                     <?php endif; ?>

@@ -65,8 +65,7 @@
                             <p class="font-semibold text-orange-600">Rp <?= number_format($c['denda_tidak_absen_pulang'],0,',','.') ?></p>
                         </div>
                     </div>
-                    <div class="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
-                        <span class="text-xs text-gray-500">Lembur: <b>Rp <?= number_format($c['tarif_lembur_per_jam'],0,',','.') ?>/jam</b></span>
+                    <div class="mt-3 pt-3 border-t border-gray-100 flex justify-end items-center">
                         <button onclick='bukaModalEdit(<?= json_encode($c) ?>)' class="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-blue-800 transition-colors">
                             <i class="fa-solid fa-pen-to-square"></i> Edit
                         </button>
@@ -156,10 +155,6 @@ function renderFormCabang($prefix = '') {
             <div><label class="block text-xs text-red-500 mb-1">Alfa (Rp)</label><input name="denda_alfa" id="<?= $prefix ?>denda_alfa" type="number" class="<?= $inputClass ?>" placeholder="50000"></div>
             <div class="col-span-3"><label class="block text-xs text-orange-500 mb-1">Tidak Absen Pulang (Rp)</label><input name="denda_tidak_absen_pulang" id="<?= $prefix ?>denda_tidak_absen_pulang" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
         </div>
-        <div>
-            <label class="block text-xs font-semibold text-gray-600 mb-1">Tarif Lembur/Jam (Rp)</label>
-            <input name="tarif_lembur_per_jam" id="<?= $prefix ?>tarif_lembur" type="number" class="<?= $inputClass ?>" placeholder="0">
-        </div>
     </div>
     <?php return ob_get_clean();
 }
@@ -185,7 +180,6 @@ function renderFormCabang($prefix = '') {
         document.getElementById('edit-denda_31_60').value  = d.denda_31_60;
         document.getElementById('edit-denda_alfa').value   = d.denda_alfa;
         document.getElementById('edit-denda_tidak_absen_pulang').value = d.denda_tidak_absen_pulang;
-        document.getElementById('edit-tarif_lembur').value = d.tarif_lembur_per_jam;
         document.getElementById('modal-edit').classList.remove('hidden');
         document.getElementById('modal-edit').classList.add('flex');
     }

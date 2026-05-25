@@ -21,9 +21,14 @@
 
         <!-- Form Pengajuan -->
         <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-paper-plane text-primary"></i> Buat Pengajuan Baru
-            </h3>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane text-primary"></i> Pengajuan Baru
+                </h3>
+                <div class="bg-primary/10 text-primary px-3 py-1.5 rounded-xl text-xs font-bold border border-primary/20">
+                    Sisa Cuti: <?= $sisa_cuti ?? 0 ?> Hari
+                </div>
+            </div>
             <form id="form-cuti" onsubmit="submitCuti(event)" class="space-y-4">
     <?= csrf_field() ?>
                 
@@ -72,6 +77,13 @@
                     </div>
                 </div>
 
+                <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-start gap-2">
+                    <i class="fa-solid fa-circle-info text-blue-500 mt-0.5"></i>
+                    <p class="text-[11px] text-blue-800 font-medium leading-relaxed">
+                        Cuti & Izin wajib diajukan minimal <b>H-7</b>. Hari Minggu & Libur Nasional dalam rentang tanggal <b>otomatis dilompati (tidak memotong kuota)</b>.
+                    </p>
+                </div>
+
                 <button type="submit" id="btn-submit" class="w-full py-3.5 bg-primary text-white rounded-xl font-bold text-sm shadow-[0_8px_20px_-6px_rgba(30,64,175,0.5)] active:scale-95 transition-all mt-2">
                     Kirim Pengajuan
                 </button>
@@ -98,7 +110,8 @@
                     elseif ($c['jenis'] == 'Izin') { $bg_icon = 'bg-orange-100 text-orange-500'; $icon = 'fa-person-walking-arrow-right'; }
 
                     $bg_status = 'bg-gray-100 text-gray-500'; $icon_status = 'fa-clock'; $text_status = 'Menunggu';
-                    if ($c['status'] == 'approved') { $bg_status = 'bg-green-100 text-green-700'; $icon_status = 'fa-check-circle'; $text_status = 'Disetujui'; }
+                    if ($c['status'] == 'menunggu_pusat') { $bg_status = 'bg-blue-100 text-blue-600'; $icon_status = 'fa-hourglass-half'; $text_status = 'Menunggu Pusat'; }
+                    elseif ($c['status'] == 'approved') { $bg_status = 'bg-green-100 text-green-700'; $icon_status = 'fa-check-circle'; $text_status = 'Disetujui'; }
                     elseif ($c['status'] == 'rejected') { $bg_status = 'bg-red-100 text-red-700'; $icon_status = 'fa-times-circle'; $text_status = 'Ditolak'; }
                 ?>
                 <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-start gap-3">

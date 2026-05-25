@@ -1,7 +1,7 @@
 <?php
 $nama_bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-$badge_colors = ['pending'=>'bg-yellow-100 text-yellow-700','approved'=>'bg-green-100 text-green-700','rejected'=>'bg-red-100 text-red-700'];
-$badge_labels = ['pending'=>'Menunggu','approved'=>'Disetujui','rejected'=>'Ditolak'];
+$badge_colors = ['pending'=>'bg-gray-100 text-gray-500', 'menunggu_pusat'=>'bg-yellow-100 text-yellow-700', 'approved'=>'bg-green-100 text-green-700', 'rejected'=>'bg-red-100 text-red-700'];
+$badge_labels = ['pending'=>'Menunggu Cabang', 'menunggu_pusat'=>'Menunggu Pusat', 'approved'=>'Disetujui', 'rejected'=>'Ditolak'];
 ?>
 <div class="flex h-screen overflow-hidden bg-gray-50">
     <?php include_once APP_PATH . '/Views/superadmin/_sidebar.php'; ?>
@@ -16,7 +16,8 @@ $badge_labels = ['pending'=>'Menunggu','approved'=>'Disetujui','rejected'=>'Dito
             <!-- Filter Status -->
             <div class="flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-4 py-2 shadow-sm">
                 <a href="<?= BASE_URL ?>/superadmin/cuti" class="px-3 py-1 text-xs font-bold rounded-lg <?= !$filter ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-100' ?> transition-colors">Semua</a>
-                <a href="<?= BASE_URL ?>/superadmin/cuti?status=pending" class="px-3 py-1 text-xs font-bold rounded-lg <?= $filter === 'pending' ? 'bg-yellow-500 text-white' : 'text-gray-500 hover:bg-gray-100' ?> transition-colors">Menunggu</a>
+                <a href="<?= BASE_URL ?>/superadmin/cuti?status=pending" class="px-3 py-1 text-xs font-bold rounded-lg <?= $filter === 'pending' ? 'bg-gray-500 text-white' : 'text-gray-500 hover:bg-gray-100' ?> transition-colors">Menunggu Cabang</a>
+                <a href="<?= BASE_URL ?>/superadmin/cuti?status=menunggu_pusat" class="px-3 py-1 text-xs font-bold rounded-lg <?= $filter === 'menunggu_pusat' ? 'bg-yellow-500 text-white' : 'text-gray-500 hover:bg-gray-100' ?> transition-colors">Menunggu Pusat</a>
                 <a href="<?= BASE_URL ?>/superadmin/cuti?status=approved" class="px-3 py-1 text-xs font-bold rounded-lg <?= $filter === 'approved' ? 'bg-green-500 text-white' : 'text-gray-500 hover:bg-gray-100' ?> transition-colors">Disetujui</a>
                 <a href="<?= BASE_URL ?>/superadmin/cuti?status=rejected" class="px-3 py-1 text-xs font-bold rounded-lg <?= $filter === 'rejected' ? 'bg-red-500 text-white' : 'text-gray-500 hover:bg-gray-100' ?> transition-colors">Ditolak</a>
             </div>
@@ -69,7 +70,7 @@ $badge_labels = ['pending'=>'Menunggu','approved'=>'Disetujui','rejected'=>'Dito
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    <?php if ($c['status'] === 'pending'): ?>
+                                    <?php if ($c['status'] === 'menunggu_pusat'): ?>
                                     <div class="flex items-center justify-end gap-2">
                                         <button onclick="responCuti(<?= $c['id_cuti'] ?>, 'approved')" class="px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg text-xs font-bold transition-colors">
                                             <i class="fa-solid fa-check mr-1"></i>Setujui
@@ -78,6 +79,8 @@ $badge_labels = ['pending'=>'Menunggu','approved'=>'Disetujui','rejected'=>'Dito
                                             <i class="fa-solid fa-xmark mr-1"></i>Tolak
                                         </button>
                                     </div>
+                                    <?php elseif ($c['status'] === 'pending'): ?>
+                                    <span class="text-xs text-gray-400">Menunggu Cabang</span>
                                     <?php else: ?>
                                     <span class="text-xs text-gray-400">Sudah diproses</span>
                                     <?php endif; ?>

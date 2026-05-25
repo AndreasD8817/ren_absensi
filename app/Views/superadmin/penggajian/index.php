@@ -11,6 +11,16 @@ foreach ($ringkasan as $r) {
     $c_id = $r['id_cabang'];
     $cabang_counts[$c_id] = ($cabang_counts[$c_id] ?? 0) + 1;
 }
+
+// Format string periode
+$prev_bulan = $bulan - 1;
+$prev_tahun = $tahun;
+if ($prev_bulan == 0) {
+    $prev_bulan = 12;
+    $prev_tahun -= 1;
+}
+$start_str = "26 " . $nama_bulan[$prev_bulan] . " " . $prev_tahun;
+$end_str = "25 " . $nama_bulan[$bulan] . " " . $tahun;
 ?>
 <!-- Halaman Penggajian - Superadmin -->
 <div class="flex h-screen overflow-hidden bg-gray-50">
@@ -23,6 +33,7 @@ foreach ($ringkasan as $r) {
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Penggajian Bulanan</h2>
                 <p class="text-gray-500 text-sm mt-1">Kalkulasi otomatis gaji bersih seluruh pegawai</p>
+                <p class="text-blue-700 font-semibold text-xs mt-2 bg-blue-50 border border-blue-100 inline-block px-3 py-1 rounded-full"><i class="fa-solid fa-calendar-days mr-1"></i> Periode Cut-Off: <?= $start_str ?> — <?= $end_str ?></p>
             </div>
             <!-- Filter Bulan & Tahun -->
             <form method="GET" action="<?= BASE_URL ?>/superadmin/penggajian" class="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
@@ -80,7 +91,17 @@ foreach ($ringkasan as $r) {
                 </select>
             </div>
             
-            <div class="flex gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <?php if (!$semua_published): ?>
+                <div class="flex items-center gap-2 bg-white px-4 py-2 border border-gray-200 rounded-xl shadow-sm">
+                    <label class="relative inline-flex items-center cursor-pointer" title="Aktifkan perhitungan PPh 21 pada gaji">
+                        <input type="checkbox" id="toggle_pph21" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                        <span class="ml-2 text-sm font-semibold text-gray-700">Hitung PPh 21</span>
+                    </label>
+                </div>
+                <?php endif; ?>
+
                 <?php if (!$sudah_generate): ?>
                 <button onclick="generateGaji()" class="flex items-center gap-2 px-6 py-2.5 bg-yellow-500 text-white text-sm font-semibold rounded-xl shadow-md hover:bg-yellow-600 active:scale-95 transition-all">
                     <i class="fa-solid fa-calculator"></i> Generate Gaji <?= $nama_bulan[$bulan] ?> <?= $tahun ?>
@@ -534,6 +555,7 @@ foreach ($ringkasan as $r) {
         Swal.fire({ title: 'Memproses...', text: 'Menghitung kalkulasi gaji pegawai...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
         const postCabang = id_cabang === 'all' ? '' : id_cabang;
+        const is_pph21_active = document.getElementById('toggle_pph21') && document.getElementById('toggle_pph21').checked ? 1 : 0;
 
         const resp = await fetch('<?= BASE_URL ?>/superadmin/generate_gaji', {
             method: 'POST',
@@ -541,6 +563,7 @@ foreach ($ringkasan as $r) {
                 bulan: '<?= $bulan ?>', 
                 tahun: '<?= $tahun ?>', 
                 id_cabang: postCabang,
+                is_pph21_active: is_pph21_active,
                 csrf_token: '<?= csrf_token() ?>' 
             })
         });

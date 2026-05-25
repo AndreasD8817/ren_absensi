@@ -38,7 +38,7 @@ class Cabang {
             $d5 = $data['denda_31_60'] === '' ? 0 : $data['denda_31_60'];
             $dalfa = $data['denda_alfa'] === '' ? 0 : $data['denda_alfa'];
             $dnotpulang = $data['denda_tidak_absen_pulang'] === '' ? 0 : $data['denda_tidak_absen_pulang'];
-            $lembur = $data['tarif_lembur_per_jam'] === '' ? 0 : $data['tarif_lembur_per_jam'];
+            $lembur = 0; // Data usang, kini dihitung otomatis berdasarkan Tipe Pekerjaan
 
             $stmt->bindParam(':nama',     $data['nama_cabang']);
             $stmt->bindParam(':timezone', $data['timezone']);
@@ -81,7 +81,7 @@ class Cabang {
             $d5 = $data['denda_31_60'] === '' ? 0 : $data['denda_31_60'];
             $dalfa = $data['denda_alfa'] === '' ? 0 : $data['denda_alfa'];
             $dnotpulang = $data['denda_tidak_absen_pulang'] === '' ? 0 : $data['denda_tidak_absen_pulang'];
-            $lembur = $data['tarif_lembur_per_jam'] === '' ? 0 : $data['tarif_lembur_per_jam'];
+            $lembur = 0; // Data usang, kini dihitung otomatis berdasarkan Tipe Pekerjaan
 
             $stmt->bindParam(':nama',     $data['nama_cabang']);
             $stmt->bindParam(':timezone', $data['timezone']);

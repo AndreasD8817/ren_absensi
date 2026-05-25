@@ -39,8 +39,8 @@ class User {
 
         $hash = password_hash($data['password'], PASSWORD_BCRYPT);
         $stmt = $this->db->prepare("
-            INSERT INTO users (id_cabang, nip, nama_lengkap, jabatan, password, role, gaji_pokok, status_pajak, saldo_awal_pph21, tunj_jabatan, tunj_transportasi, tunj_makan, tunj_kehadiran, tunj_lainnya)
-            VALUES (:id_cabang, :nip, :nama, :jabatan, :password, :role, :gaji, :status_pajak, :saldo_awal_pph21, :tunj_jab, :tunj_trans, :tunj_mak, :tunj_hadir, :tunj_lain)
+            INSERT INTO users (id_cabang, nip, nama_lengkap, jabatan, password, role, tipe_lembur, gaji_pokok, status_pajak, saldo_awal_pph21, tunj_jabatan, tunj_transportasi, tunj_makan, tunj_kehadiran, tunj_lainnya)
+            VALUES (:id_cabang, :nip, :nama, :jabatan, :password, :role, :tipe_lembur, :gaji, :status_pajak, :saldo_awal_pph21, :tunj_jab, :tunj_trans, :tunj_mak, :tunj_hadir, :tunj_lain)
         ");
         $stmt->bindParam(':id_cabang', $data['id_cabang']);
         $stmt->bindParam(':nip',       $data['nip']);
@@ -48,6 +48,7 @@ class User {
         $stmt->bindParam(':jabatan',   $data['jabatan']);
         $stmt->bindParam(':password',  $hash);
         $stmt->bindParam(':role',      $data['role']);
+        $stmt->bindParam(':tipe_lembur', $data['tipe_lembur']);
         $stmt->bindParam(':gaji',      $data['gaji_pokok']);
         
         $stmt->bindParam(':status_pajak', $data['status_pajak']);
@@ -71,7 +72,7 @@ class User {
             $hash = password_hash($data['password'], PASSWORD_BCRYPT);
             $stmt = $this->db->prepare("
                 UPDATE users SET id_cabang=:id_cabang, nip=:nip, nama_lengkap=:nama, jabatan=:jabatan,
-                password=:password, role=:role, gaji_pokok=:gaji, status_pajak=:status_pajak, saldo_awal_pph21=:saldo_awal_pph21,
+                password=:password, role=:role, tipe_lembur=:tipe_lembur, gaji_pokok=:gaji, status_pajak=:status_pajak, saldo_awal_pph21=:saldo_awal_pph21,
                 tunj_jabatan=:tunj_jab, tunj_transportasi=:tunj_trans, tunj_makan=:tunj_mak, 
                 tunj_kehadiran=:tunj_hadir, tunj_lainnya=:tunj_lain 
                 WHERE id_user=:id
@@ -80,7 +81,7 @@ class User {
         } else {
             $stmt = $this->db->prepare("
                 UPDATE users SET id_cabang=:id_cabang, nip=:nip, nama_lengkap=:nama, jabatan=:jabatan,
-                role=:role, gaji_pokok=:gaji, status_pajak=:status_pajak, saldo_awal_pph21=:saldo_awal_pph21,
+                role=:role, tipe_lembur=:tipe_lembur, gaji_pokok=:gaji, status_pajak=:status_pajak, saldo_awal_pph21=:saldo_awal_pph21,
                 tunj_jabatan=:tunj_jab, tunj_transportasi=:tunj_trans, tunj_makan=:tunj_mak, 
                 tunj_kehadiran=:tunj_hadir, tunj_lainnya=:tunj_lain 
                 WHERE id_user=:id
@@ -91,6 +92,7 @@ class User {
         $stmt->bindParam(':nama',      $data['nama_lengkap']);
         $stmt->bindParam(':jabatan',   $data['jabatan']);
         $stmt->bindParam(':role',      $data['role']);
+        $stmt->bindParam(':tipe_lembur', $data['tipe_lembur']);
         $stmt->bindParam(':gaji',      $data['gaji_pokok']);
         
         $stmt->bindParam(':status_pajak', $data['status_pajak']);
@@ -112,6 +114,48 @@ class User {
     // Toggle status aktif/nonaktif pegawai
     public function toggleStatusPegawai($id_user) {
         $stmt = $this->db->prepare("UPDATE users SET is_active = NOT is_active WHERE id_user = :id");
+        $stmt->bindParam(':id', $id_user, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
+    // Hapus permanen pegawai beserta foto-fotonya
+    public function hapusPegawai($id_user) {
+        $dir_uploads = PUBLIC_PATH . '/uploads/';
+
+        // 1. Lacak dan Hapus File Foto Absensi
+        $stmt_abs = $this->db->prepare("SELECT foto_masuk, foto_pulang FROM absensi WHERE id_user = :id");
+        $stmt_abs->bindParam(':id', $id_user, PDO::PARAM_INT);
+        $stmt_abs->execute();
+        $absensi = $stmt_abs->fetchAll();
+        foreach ($absensi as $a) {
+            if (!empty($a['foto_masuk']) && file_exists($dir_uploads . $a['foto_masuk'])) {
+                @unlink($dir_uploads . $a['foto_masuk']);
+            }
+            if (!empty($a['foto_pulang']) && file_exists($dir_uploads . $a['foto_pulang'])) {
+                @unlink($dir_uploads . $a['foto_pulang']);
+            }
+        }
+
+        // 2. Lacak dan Hapus Bukti Foto Cuti
+        $stmt_cuti = $this->db->prepare("SELECT bukti_foto FROM pengajuan_cuti WHERE id_user = :id");
+        $stmt_cuti->bindParam(':id', $id_user, PDO::PARAM_INT);
+        $stmt_cuti->execute();
+        $cuti = $stmt_cuti->fetchAll();
+        foreach ($cuti as $c) {
+            if (!empty($c['bukti_foto']) && file_exists($dir_uploads . $c['bukti_foto'])) {
+                @unlink($dir_uploads . $c['bukti_foto']);
+            }
+        }
+
+        // 3. Eksekusi Hapus dari Database (Asumsi jika belum ON DELETE CASCADE)
+        $tables = ['absensi', 'pengajuan_cuti', 'pengajuan_lembur', 'penggajian_bulanan', 'distribusi_insentif'];
+        foreach ($tables as $tbl) {
+            try {
+                $this->db->prepare("DELETE FROM $tbl WHERE id_user = :id")->execute([':id' => $id_user]);
+            } catch (Exception $e) {}
+        }
+
+        $stmt = $this->db->prepare("DELETE FROM users WHERE id_user = :id");
         $stmt->bindParam(':id', $id_user, PDO::PARAM_INT);
         return $stmt->execute();
     }

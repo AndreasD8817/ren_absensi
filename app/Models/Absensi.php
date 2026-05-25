@@ -261,25 +261,54 @@ class Absensi {
         return $stmt->fetchAll();
     }
 
-    // Detail absensi harian per pegawai dalam satu bulan
+    // Mendapatkan rentang tanggal untuk cutoff (26 bulan lalu s/d 25 bulan ini)
+    public function getRentangWaktuBuku($bulan, $tahun) {
+        $prev_bulan = $bulan - 1;
+        $prev_tahun = $tahun;
+        if ($prev_bulan == 0) {
+            $prev_bulan = 12;
+            $prev_tahun -= 1;
+        }
+        $start_date = sprintf("%04d-%02d-26", $prev_tahun, $prev_bulan);
+        $end_date = sprintf("%04d-%02d-25", $tahun, $bulan);
+        return ['start' => $start_date, 'end' => $end_date];
+    }
+
+    // Detail absensi harian per pegawai dalam satu bulan (mengikuti cutoff)
     public function getDetailHarianUser($id_user, $bulan, $tahun) {
+        $rentang = $this->getRentangWaktuBuku($bulan, $tahun);
         $stmt = $this->db->prepare("
             SELECT a.*
             FROM absensi a
             WHERE a.id_user = :id_user
-              AND MONTH(a.tanggal) = :bulan
-              AND YEAR(a.tanggal) = :tahun
+              AND DATE(a.tanggal) BETWEEN :start_date AND :end_date
             ORDER BY a.tanggal ASC
         ");
         $stmt->bindParam(':id_user', $id_user, PDO::PARAM_INT);
-        $stmt->bindParam(':bulan', $bulan, PDO::PARAM_INT);
-        $stmt->bindParam(':tahun', $tahun, PDO::PARAM_INT);
+        $stmt->bindParam(':start_date', $rentang['start']);
+        $stmt->bindParam(':end_date', $rentang['end']);
         $stmt->execute();
         return $stmt->fetchAll();
+    }
+    // Mengambil jadwal jam kerja spesifik untuk tanggal tertentu
+    public function getJamKerjaByTanggal($id_cabang, $tanggal) {
+        $hari_map = [1=>'Senin', 2=>'Selasa', 3=>'Rabu', 4=>'Kamis', 5=>'Jumat', 6=>'Sabtu', 7=>'Minggu'];
+        $hari = $hari_map[date('N', strtotime($tanggal))];
+        $stmt = $this->db->prepare("SELECT jam_masuk, jam_pulang FROM jam_kerja_cabang WHERE id_cabang = :id_cabang AND hari = :hari");
+        $stmt->bindParam(':id_cabang', $id_cabang);
+        $stmt->bindParam(':hari', $hari);
+        $stmt->execute();
+        return $stmt->fetch();
     }
 
     // Edit data absensi (Superadmin)
     public function editAbsensi($data) {
+        // Ambil info absensi
+        $stmt_info = $this->db->prepare("SELECT a.tanggal, u.id_cabang FROM absensi a JOIN users u ON a.id_user = u.id_user WHERE a.id_absensi = :id");
+        $stmt_info->bindParam(':id', $data['id_absensi']);
+        $stmt_info->execute();
+        $info = $stmt_info->fetch();
+
         // Jika status = alfa, hapus data jam
         if ($data['status'] === 'alfa') {
             $stmt = $this->db->prepare("
@@ -289,14 +318,26 @@ class Absensi {
             ");
             $stmt->bindParam(':id', $data['id_absensi'], PDO::PARAM_INT);
         } else {
+            $menit_terlambat = 0;
+            if ($data['status'] === 'telat' && $info) {
+                $jadwal = $this->getJamKerjaByTanggal($info['id_cabang'], $info['tanggal']);
+                if ($jadwal && isset($jadwal['jam_masuk']) && $data['jam_masuk'] > $jadwal['jam_masuk']) {
+                    $menit_terlambat = round((strtotime($data['jam_masuk']) - strtotime($jadwal['jam_masuk'])) / 60);
+                } else {
+                    // Jika jam masuk <= jadwal, berarti tidak telat
+                    $data['status'] = 'hadir';
+                }
+            }
+
             $stmt = $this->db->prepare("
                 UPDATE absensi 
-                SET jam_masuk = :jam_masuk, jam_pulang = :jam_pulang, status = :status
+                SET jam_masuk = :jam_masuk, jam_pulang = :jam_pulang, status = :status, menit_terlambat = :menit
                 WHERE id_absensi = :id
             ");
             $stmt->bindParam(':jam_masuk', $data['jam_masuk']);
             $stmt->bindParam(':jam_pulang', $data['jam_pulang']);
             $stmt->bindParam(':status', $data['status']);
+            $stmt->bindParam(':menit', $menit_terlambat);
             $stmt->bindParam(':id', $data['id_absensi'], PDO::PARAM_INT);
         }
         return $stmt->execute();

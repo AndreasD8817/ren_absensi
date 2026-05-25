@@ -73,19 +73,32 @@ class Lembur {
         return $stmt->execute();
     }
 
+    // Mendapatkan rentang tanggal untuk cutoff (26 bulan lalu s/d 25 bulan ini)
+    public function getRentangWaktuBuku($bulan, $tahun) {
+        $prev_bulan = $bulan - 1;
+        $prev_tahun = $tahun;
+        if ($prev_bulan == 0) {
+            $prev_bulan = 12;
+            $prev_tahun -= 1;
+        }
+        $start_date = sprintf("%04d-%02d-26", $prev_tahun, $prev_bulan);
+        $end_date = sprintf("%04d-%02d-25", $tahun, $bulan);
+        return ['start' => $start_date, 'end' => $end_date];
+    }
+
     // Mengambil total jam lembur yang APPROVED per pegawai untuk bulan & tahun tertentu (Untuk Payroll)
     public function getTotalJamLemburBulanan($id_user, $bulan, $tahun) {
+        $rentang = $this->getRentangWaktuBuku($bulan, $tahun);
         $stmt = $this->db->prepare("
             SELECT COALESCE(SUM(durasi_jam), 0) as total_jam
             FROM pengajuan_lembur
             WHERE id_user = :id_user 
-              AND MONTH(tanggal) = :bulan 
-              AND YEAR(tanggal) = :tahun 
+              AND tanggal BETWEEN :start_date AND :end_date 
               AND status = 'approved'
         ");
         $stmt->bindParam(':id_user', $id_user, PDO::PARAM_INT);
-        $stmt->bindParam(':bulan', $bulan, PDO::PARAM_INT);
-        $stmt->bindParam(':tahun', $tahun, PDO::PARAM_INT);
+        $stmt->bindParam(':start_date', $rentang['start']);
+        $stmt->bindParam(':end_date', $rentang['end']);
         $stmt->execute();
         $res = $stmt->fetch();
         return $res ? (float)$res['total_jam'] : 0;

@@ -1,6 +1,16 @@
 <?php
 $nama_bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 $base_foto = BASE_URL . '/uploads/';
+
+// Format string periode
+$prev_bulan = $bulan - 1;
+$prev_tahun = $tahun;
+if ($prev_bulan == 0) {
+    $prev_bulan = 12;
+    $prev_tahun -= 1;
+}
+$start_str = "26 " . $nama_bulan[$prev_bulan] . " " . $prev_tahun;
+$end_str = "25 " . $nama_bulan[$bulan] . " " . $tahun;
 ?>
 <!-- Halaman Absensi - Superadmin -->
 <div class="flex h-screen overflow-hidden bg-gray-50">
@@ -13,6 +23,7 @@ $base_foto = BASE_URL . '/uploads/';
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Data Absensi Pegawai</h2>
                 <p class="text-gray-500 text-sm mt-1">Rekapitulasi kehadiran, keterlambatan, dan alfa bulanan</p>
+                <p class="text-blue-700 font-semibold text-xs mt-2 bg-blue-50 border border-blue-100 inline-block px-3 py-1 rounded-full"><i class="fa-solid fa-calendar-days mr-1"></i> Periode Cut-Off: <?= $start_str ?> — <?= $end_str ?></p>
             </div>
             <form method="GET" action="<?= BASE_URL ?>/superadmin/absensi" class="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
                 <select name="bulan" class="text-sm border-0 outline-none focus:ring-0 font-semibold text-gray-700 bg-transparent">
@@ -74,7 +85,7 @@ $base_foto = BASE_URL . '/uploads/';
                         <tr class="no-data-row"><td colspan="7" class="px-6 py-10 text-center text-gray-400">Tidak ada data pegawai aktif atau absensi.</td></tr>
                         <?php else: ?>
                             <?php foreach ($ringkasan as $r): ?>
-                            <tr class="hover:bg-gray-50 transition-colors">
+                            <tr id="row-user-<?= $r['id_user'] ?>" class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-3">
                                         <img src="https://ui-avatars.com/api/?name=<?= urlencode($r['nama_lengkap']) ?>&size=36&background=random" class="w-9 h-9 rounded-full" alt="">
@@ -86,16 +97,16 @@ $base_foto = BASE_URL . '/uploads/';
                                 </td>
                                 <td class="px-6 py-4 text-gray-600 font-medium"><?= esc($r['nama_cabang']) ?></td>
                                 <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 font-bold"><?= $r['total_hadir'] ?></span>
+                                    <span class="val-hadir inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 font-bold"><?= $r['total_hadir'] ?></span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <?= $r['total_telat'] > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-50 text-gray-500' ?> font-bold">
+                                    <span class="val-telat inline-flex items-center justify-center w-8 h-8 rounded-full <?= $r['total_telat'] > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-50 text-gray-500' ?> font-bold">
                                         <?= $r['total_telat'] ?>
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-center font-bold text-red-500"><?= $r['total_menit_terlambat'] ?? 0 ?> m</td>
+                                <td class="px-6 py-4 text-center font-bold text-red-500"><span class="val-menit"><?= $r['total_menit_terlambat'] ?? 0 ?></span> m</td>
                                 <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full <?= $r['total_alfa'] > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-50 text-gray-500' ?> font-bold">
+                                    <span class="val-alfa inline-flex items-center justify-center w-8 h-8 rounded-full <?= $r['total_alfa'] > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-50 text-gray-500' ?> font-bold">
                                         <?= $r['total_alfa'] ?>
                                     </span>
                                 </td>
@@ -154,7 +165,7 @@ $base_foto = BASE_URL . '/uploads/';
                         <th class="text-center px-4 py-3 font-bold text-gray-500 uppercase">Jam Pulang</th>
                         <th class="text-center px-4 py-3 font-bold text-gray-500 uppercase">Menit Telat</th>
                         <th class="text-center px-4 py-3 font-bold text-gray-500 uppercase">Bukti</th>
-                        <th class="text-right px-4 py-3 font-bold text-gray-500 uppercase">Edit</th>
+                        <th class="text-right px-4 py-3 font-bold text-gray-500 uppercase print:hidden">Edit</th>
                     </tr>
                 </thead>
                 <tbody id="tbody-detail" class="divide-y divide-gray-100">
@@ -221,6 +232,9 @@ const statusBadge = {
     hadir:  '<span class="px-2 py-1 bg-green-100 text-green-700 rounded-full font-bold">Hadir</span>',
     telat:  '<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold">Terlambat</span>',
     alfa:   '<span class="px-2 py-1 bg-red-100 text-red-700 rounded-full font-bold">Alfa</span>',
+    cuti:   '<span class="px-2 py-1 bg-teal-100 text-teal-700 rounded-full font-bold">Cuti</span>',
+    libur:  '<span class="px-2 py-1 bg-gray-100 text-gray-500 rounded-full font-bold">Libur</span>',
+    weekend:'<span class="px-2 py-1 bg-gray-100 text-gray-500 rounded-full font-bold">Libur (Weekend)</span>',
 };
 
 function bukaModal(id) {
@@ -273,6 +287,15 @@ async function lihatDetail(id_user, nama) {
 
         if (!buktiFoto) buktiFoto = '<span class="text-gray-300">—</span>';
 
+        let editBtn = '';
+        if (a.id_absensi) {
+            editBtn = `<button onclick='bukaEdit(${JSON.stringify(a)})' class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 inline-flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                </button>`;
+        } else {
+            editBtn = `<span class="text-gray-300">—</span>`;
+        }
+
         rows += `<tr class="hover:bg-gray-50">
             <td class="px-4 py-3 font-medium text-gray-700">${tgl}</td>
             <td class="px-4 py-3 text-center">${statusBadge[a.status] || a.status}</td>
@@ -283,9 +306,7 @@ async function lihatDetail(id_user, nama) {
                 <div class="flex flex-row items-center justify-center gap-2">${buktiFoto}</div>
             </td>
             <td class="px-4 py-3 text-right print:hidden">
-                <button onclick='bukaEdit(${JSON.stringify(a)})' class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 inline-flex items-center justify-center transition-colors">
-                    <i class="fa-solid fa-pen text-xs"></i>
-                </button>
+                ${editBtn}
             </td>
         </tr>`;
     });
@@ -319,9 +340,37 @@ async function simpanEdit(e) {
 
     if (data.status === 'success') {
         tutupModal('modal-edit');
+        // Reset button statenya agar tidak mutar terus saat dibuka lagi
+        btn.innerHTML = 'Simpan';
+        btn.disabled = false;
+        
         // Reload detail modal
         const nama = document.getElementById('modal-detail-nama').textContent.replace('Detail: ', '');
         await lihatDetail(currentUserId, nama);
+        
+        // Update tabel utama (Summary) di balik layer via AJAX
+        fetch(`${BASE_URL}/superadmin/ringkasan_absensi_user?id_user=${currentUserId}&bulan=${BULAN}&tahun=${TAHUN}`)
+            .then(res => res.json())
+            .then(resData => {
+                if(resData.status === 'success') {
+                    const row = document.getElementById('row-user-' + currentUserId);
+                    if(row) {
+                        const r = resData.data;
+                        row.querySelector('.val-hadir').innerText = r.total_hadir;
+                        
+                        const elTelat = row.querySelector('.val-telat');
+                        elTelat.innerText = r.total_telat;
+                        elTelat.className = r.total_telat > 0 ? 'val-telat inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 font-bold' : 'val-telat inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-500 font-bold';
+                        
+                        row.querySelector('.val-menit').innerText = r.total_menit_terlambat || 0;
+                        
+                        const elAlfa = row.querySelector('.val-alfa');
+                        elAlfa.innerText = r.total_alfa;
+                        elAlfa.className = r.total_alfa > 0 ? 'val-alfa inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100 text-red-700 font-bold' : 'val-alfa inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-500 font-bold';
+                    }
+                }
+            });
+
         Swal.fire({ icon: 'success', title: 'Berhasil', text: data.message, timer: 1500, showConfirmButton: false });
     } else {
         Swal.fire('Gagal', data.message, 'error');

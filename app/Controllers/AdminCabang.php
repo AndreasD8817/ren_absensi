@@ -99,7 +99,7 @@ class AdminCabang extends Controller {
         $status  = $_POST['status']; // 'approved' atau 'rejected'
         $id_admin = $_SESSION['user']['id_user'];
 
-        $result = $cutiModel->responCuti($id_cuti, $id_admin, $status);
+        $result = $cutiModel->responCuti($id_cuti, $id_admin, $status, 'admin_cabang');
         if ($result) {
             catat_log('UPDATE', 'Cuti', 'Merespon cuti ID ' . $id_cuti . ' dengan status ' . $status);
             echo json_encode(['status' => 'success', 'message' => 'Berhasil memberikan respon pada pengajuan cuti/izin.']);
@@ -215,8 +215,8 @@ class AdminCabang extends Controller {
             return;
         }
 
-        $absensiModel = $this->model('Absensi');
-        $detail       = $absensiModel->getDetailHarianUser($id_user, $bulan, $tahun);
+        $penggajianModel = $this->model('Penggajian');
+        $detail = $penggajianModel->getDetailHarianLengkap($id_user, $bulan, $tahun);
         echo json_encode(['status' => 'success', 'data' => $detail]);
     }
 

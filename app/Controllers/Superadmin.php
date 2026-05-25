@@ -67,6 +67,115 @@ class Superadmin extends Controller {
         echo json_encode(['status' => $result ? 'success' : 'error', 'message' => $result ? 'Status pegawai berhasil diubah.' : 'Gagal mengubah status.']);
     }
 
+    public function hapus_pegawai() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
+        $userModel = $this->model('User');
+        $result    = $userModel->hapusPegawai($_POST['id_user']);
+        if ($result) catat_log('DELETE', 'Pegawai', 'Menghapus permanen pegawai ID ' . $_POST['id_user']);
+        echo json_encode(['status' => $result ? 'success' : 'error', 'message' => $result ? 'Pegawai beserta data dan fotonya berhasil dihapus permanen.' : 'Gagal menghapus pegawai.']);
+    }
+
+    public function download_template_pegawai() {
+        $filename = "Template_Import_Pegawai.csv";
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        $output = fopen('php://output', 'w');
+        // Header CSV
+        fputcsv($output, ['NIP', 'Nama Lengkap', 'Username', 'Password', 'Role', 'ID Cabang', 'Jabatan', 'Gaji Pokok', 'Tipe Lembur', 'Tunj Jabatan', 'Tunj Transport', 'Tunj Makan', 'Tunj Kehadiran', 'Tunj Lainnya']);
+        // Contoh Data
+        fputcsv($output, ['12345678', 'Budi Santoso', 'budi_s', 'password123', 'pegawai', '1', 'Staff IT', '5000000', 'Non-Project', '500000', '200000', '300000', '100000', '0']);
+        fputcsv($output, ['87654321', 'Siti Aminah', 'siti_a', 'password123', 'admin_cabang', '2', 'HR Cabang', '6000000', 'Project', '700000', '250000', '350000', '150000', '50000']);
+        fclose($output);
+        exit;
+    }
+
+    public function import_pegawai_csv() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
+        if (!isset($_FILES['file_csv']) || $_FILES['file_csv']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['status' => 'error', 'message' => 'Gagal mengunggah file. Pastikan file dipilih.']);
+            return;
+        }
+
+        $fileTmp = $_FILES['file_csv']['tmp_name'];
+        $handle = fopen($fileTmp, 'r');
+        if (!$handle) {
+            echo json_encode(['status' => 'error', 'message' => 'Tidak dapat membaca file CSV.']);
+            return;
+        }
+
+        $db = (new Database())->getConnection();
+        $userModel = $this->model('User');
+        $headerSkipped = false;
+        $successCount = 0;
+        $errorRows = [];
+        $rowNum = 1;
+
+        while (($data = fgetcsv($handle)) !== FALSE) {
+            if (!$headerSkipped) { $headerSkipped = true; $rowNum++; continue; }
+            if (count($data) < 14) {
+                $errorRows[] = "Baris $rowNum: Format kolom tidak lengkap (Butuh 14 kolom).";
+                $rowNum++; continue;
+            }
+
+            $nip = trim($data[0]);
+            $nama = trim($data[1]);
+            $username = trim($data[2]);
+            $password = trim($data[3]);
+            $role = trim(strtolower($data[4]));
+            $id_cabang = (int)trim($data[5]);
+            $jabatan = trim($data[6]);
+            $gaji = (int)str_replace(['.', ','], '', trim($data[7]));
+            $tipe_lembur = trim($data[8]);
+            
+            $t_jabatan = (int)str_replace(['.', ','], '', trim($data[9]));
+            $t_transport = (int)str_replace(['.', ','], '', trim($data[10]));
+            $t_makan = (int)str_replace(['.', ','], '', trim($data[11]));
+            $t_hadir = (int)str_replace(['.', ','], '', trim($data[12]));
+            $t_lainnya = (int)str_replace(['.', ','], '', trim($data[13]));
+
+            if (empty($nip) || empty($username) || empty($password)) {
+                $errorRows[] = "Baris $rowNum: NIP, Username, dan Password wajib diisi.";
+                $rowNum++; continue;
+            }
+
+            // Validasi NIP & Username
+            $stmt = $db->prepare("SELECT id_user FROM users WHERE nip = :nip OR username = :username");
+            $stmt->execute([':nip' => $nip, ':username' => $username]);
+            if ($stmt->fetch()) {
+                $errorRows[] = "Baris $rowNum: NIP atau Username ($username) sudah terdaftar.";
+                $rowNum++; continue;
+            }
+
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $stmt_in = $db->prepare("
+                INSERT INTO users (nip, nama_lengkap, username, password, role, id_cabang, jabatan, gaji_pokok, tipe_lembur, tunj_jabatan, tunj_transportasi, tunj_makan, tunj_kehadiran, tunj_lainnya, is_active)
+                VALUES (:nip, :nama, :uname, :pass, :role, :id_cabang, :jabatan, :gaji, :tipe, :tj, :tt, :tm, :th, :tl, 1)
+            ");
+            
+            try {
+                $stmt_in->execute([
+                    ':nip' => $nip, ':nama' => $nama, ':uname' => $username, ':pass' => $hashed_password,
+                    ':role' => $role, ':id_cabang' => $id_cabang, ':jabatan' => $jabatan, ':gaji' => $gaji, ':tipe' => $tipe_lembur,
+                    ':tj' => $t_jabatan, ':tt' => $t_transport, ':tm' => $t_makan, ':th' => $t_hadir, ':tl' => $t_lainnya
+                ]);
+                $successCount++;
+            } catch (Exception $e) {
+                $errorRows[] = "Baris $rowNum: Gagal menyimpan ke database.";
+            }
+            $rowNum++;
+        }
+        fclose($handle);
+
+        $msg = "Berhasil mengimpor $successCount pegawai.";
+        if (count($errorRows) > 0) {
+            $msg .= " Namun terdapat error pada beberapa baris:<br>" . implode("<br>", array_slice($errorRows, 0, 5));
+            if (count($errorRows) > 5) $msg .= "<br>...dan " . (count($errorRows) - 5) . " error lainnya.";
+        }
+        
+        catat_log('CREATE', 'Pegawai', "Import CSV: $successCount berhasil ditambahkan.");
+        echo json_encode(['status' => 'success', 'message' => $msg]);
+    }
+
     // ==================== KELOLA CABANG ====================
     public function data_cabang() {
         $data['judul']  = 'Kelola Cabang | PT REN';
@@ -141,15 +250,41 @@ class Superadmin extends Controller {
         $bulan   = $_GET['bulan'] ?? date('n');
         $tahun   = $_GET['tahun'] ?? date('Y');
 
-        $absensiModel = $this->model('Absensi');
-        $detail       = $absensiModel->getDetailHarianUser($id_user, $bulan, $tahun);
+        $penggajianModel = $this->model('Penggajian');
+        $detail = $penggajianModel->getDetailHarianLengkap($id_user, $bulan, $tahun);
         echo json_encode(['status' => 'success', 'data' => $detail]);
+    }
+
+    public function ringkasan_absensi_user() {
+        $id_user = $_GET['id_user'] ?? 0;
+        $bulan   = $_GET['bulan'] ?? date('n');
+        $tahun   = $_GET['tahun'] ?? date('Y');
+
+        $penggajianModel = $this->model('Penggajian');
+        $semua_ringkasan = $penggajianModel->getRingkasanAbsensi($bulan, $tahun);
+        
+        $data_user = null;
+        foreach ($semua_ringkasan as $r) {
+            if ($r['id_user'] == $id_user) {
+                $data_user = $r;
+                break;
+            }
+        }
+
+        if ($data_user) {
+            echo json_encode(['status' => 'success', 'data' => $data_user]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Data tidak ditemukan']);
+        }
     }
 
     public function edit_absensi() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $absensiModel = $this->model('Absensi');
         $result = $absensiModel->editAbsensi($_POST);
+        if ($result) {
+            catat_log('UPDATE', 'Absensi', 'Memodifikasi absensi ID: ' . $_POST['id_absensi'] . ' menjadi status: ' . $_POST['status']);
+        }
         echo json_encode(['status' => $result ? 'success' : 'error', 'message' => $result ? 'Data absensi berhasil diperbarui.' : 'Gagal memperbarui data.']);
     }
 
@@ -243,7 +378,8 @@ class Superadmin extends Controller {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         $penggajianModel = $this->model('Penggajian');
         $id_cabang = empty($_POST['id_cabang']) ? null : $_POST['id_cabang'];
-        $result = $penggajianModel->generateGaji($_POST['bulan'], $_POST['tahun'], $id_cabang);
+        $is_pph21_active = isset($_POST['is_pph21_active']) ? (int)$_POST['is_pph21_active'] : 1;
+        $result = $penggajianModel->generateGaji($_POST['bulan'], $_POST['tahun'], $id_cabang, $is_pph21_active);
         catat_log('CREATE', 'Penggajian', 'Melakukan generate gaji periode ' . $_POST['bulan'] . '/' . $_POST['tahun'] . ($id_cabang ? ' untuk cabang ID ' . $id_cabang : ' untuk semua cabang'));
         echo json_encode(['status' => 'success', 'message' => $result['message'], 'total' => $result['total']]);
     }
@@ -619,6 +755,101 @@ class Superadmin extends Controller {
         $this->view('layouts/header', $data);
         $this->view('superadmin/audit_log', $data);
         $this->view('layouts/footer');
+    }
+
+    // ==================== PENGATURAN & BACKUP ====================
+    public function backup_data() {
+        $data['judul'] = 'Backup & Pencadangan | PT REN';
+        $this->view('layouts/header', $data);
+        $this->view('superadmin/backup/index', $data);
+        $this->view('layouts/footer');
+    }
+
+    public function proses_download_backup() {
+        // Matikan batas waktu agar zip besar bisa didownload
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
+        $db = (new Database())->getConnection();
+        
+        // 1. Ekspor Database ke SQL String
+        $tables = [];
+        $stmt = $db->query("SHOW TABLES");
+        while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
+            $tables[] = $row[0];
+        }
+
+        $sql = "-- Backup Database PT REN\n";
+        $sql .= "-- Waktu: " . date('Y-m-d H:i:s') . "\n\n";
+        $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
+
+        foreach ($tables as $table) {
+            $stmt = $db->query("SHOW CREATE TABLE `$table`");
+            $row2 = $stmt->fetch(PDO::FETCH_NUM);
+            $sql .= "DROP TABLE IF EXISTS `$table`;\n";
+            $sql .= $row2[1] . ";\n\n";
+
+            $stmt2 = $db->query("SELECT * FROM `$table`");
+            while ($row = $stmt2->fetch(PDO::FETCH_ASSOC)) {
+                $sql .= "INSERT INTO `$table` VALUES(";
+                $first = true;
+                foreach ($row as $val) {
+                    if (!$first) $sql .= ", ";
+                    if ($val === null) {
+                        $sql .= "NULL";
+                    } else {
+                        $sql .= $db->quote($val);
+                    }
+                    $first = false;
+                }
+                $sql .= ");\n";
+            }
+            $sql .= "\n";
+        }
+        $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
+
+        // 2. Persiapkan ZIP Archive
+        $zipFilename = 'Backup_PTREN_' . date('Ymd_His') . '.zip';
+        $zipPath = sys_get_temp_dir() . '/' . $zipFilename;
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== TRUE) {
+            die("Gagal membuat file ZIP.");
+        }
+
+        // Tambahkan file SQL
+        $zip->addFromString('database.sql', $sql);
+
+        // 3. Tambahkan folder uploads
+        $dirUploads = PUBLIC_PATH . '/uploads';
+        if (is_dir($dirUploads)) {
+            $files = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($dirUploads),
+                RecursiveIteratorIterator::LEAVES_ONLY
+            );
+
+            foreach ($files as $name => $file) {
+                if (!$file->isDir()) {
+                    $filePath = $file->getRealPath();
+                    // Sesuaikan slash windows vs linux
+                    $relativePath = 'uploads/' . str_replace('\\', '/', substr($filePath, strlen($dirUploads) + 1));
+                    $zip->addFile($filePath, $relativePath);
+                }
+            }
+        }
+        
+        $zip->close();
+        catat_log('BACKUP', 'Sistem', 'Melakukan ekspor penuh Database (.sql) dan File Upload (.zip)');
+
+        // 4. Kirim ke Browser
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . $zipFilename . '"');
+        header('Content-Length: ' . filesize($zipPath));
+        header('Pragma: no-cache');
+        readfile($zipPath);
+        
+        // Hapus file temp
+        @unlink($zipPath);
+        exit;
     }
 
     // ==================== HELPER ====================

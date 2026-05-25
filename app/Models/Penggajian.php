@@ -7,9 +7,26 @@ class Penggajian {
         $this->db = (new Database())->getConnection();
     }
 
+    // Mendapatkan rentang tanggal untuk cutoff (26 bulan lalu s/d 25 bulan ini)
+    public function getRentangWaktuBuku($bulan, $tahun) {
+        $prev_bulan = $bulan - 1;
+        $prev_tahun = $tahun;
+        if ($prev_bulan == 0) {
+            $prev_bulan = 12;
+            $prev_tahun -= 1;
+        }
+        $start_date = sprintf("%04d-%02d-26", $prev_tahun, $prev_bulan);
+        $end_date = sprintf("%04d-%02d-25", $tahun, $bulan);
+        return ['start' => $start_date, 'end' => $end_date];
+    }
+
     // Mengambil ringkasan absensi pegawai untuk bulan & tahun tertentu
     public function getRingkasanAbsensi($bulan, $tahun, $id_cabang = null) {
         $where_cabang = $id_cabang ? " AND u.id_cabang = :id_cabang " : "";
+        $rentang = $this->getRentangWaktuBuku($bulan, $tahun);
+        $start_date = $rentang['start'];
+        $end_date = $rentang['end'];
+
         // 1. Tarik ringkasan dasar (tanpa total_alfa)
         $stmt = $this->db->prepare("
             SELECT 
@@ -24,14 +41,13 @@ class Penggajian {
             FROM users u
             JOIN cabang c ON u.id_cabang = c.id_cabang
             LEFT JOIN absensi a ON a.id_user = u.id_user
-                AND MONTH(a.tanggal) = :bulan
-                AND YEAR(a.tanggal) = :tahun
+                AND DATE(a.tanggal) BETWEEN :start_date AND :end_date
             WHERE u.role = 'pegawai' AND u.is_active = 1 $where_cabang
             GROUP BY u.id_user
             ORDER BY c.nama_cabang, u.nama_lengkap
         ");
-        $stmt->bindParam(':bulan', $bulan, PDO::PARAM_INT);
-        $stmt->bindParam(':tahun', $tahun, PDO::PARAM_INT);
+        $stmt->bindParam(':start_date', $start_date);
+        $stmt->bindParam(':end_date', $end_date);
         if ($id_cabang) {
             $stmt->bindParam(':id_cabang', $id_cabang, PDO::PARAM_INT);
         }
@@ -47,53 +63,60 @@ class Penggajian {
         }
 
         // b. Libur Nasional Bulan Ini
-        $stmt_ln = $this->db->prepare("SELECT tanggal FROM hari_libur WHERE MONTH(tanggal)=:bulan AND YEAR(tanggal)=:tahun");
-        $stmt_ln->execute([':bulan' => $bulan, ':tahun' => $tahun]);
+        $stmt_ln = $this->db->prepare("SELECT tanggal FROM hari_libur WHERE tanggal BETWEEN :start_date AND :end_date");
+        $stmt_ln->execute([':start_date' => $start_date, ':end_date' => $end_date]);
         $libur_nasional = array_column($stmt_ln->fetchAll(PDO::FETCH_ASSOC), 'tanggal');
 
         // c. Libur Cabang Bulan Ini
-        $stmt_lc = $this->db->prepare("SELECT id_cabang, tanggal, status FROM libur_override WHERE MONTH(tanggal)=:bulan AND YEAR(tanggal)=:tahun");
-        $stmt_lc->execute([':bulan' => $bulan, ':tahun' => $tahun]);
+        $stmt_lc = $this->db->prepare("SELECT id_cabang, tanggal, status FROM libur_override WHERE tanggal BETWEEN :start_date AND :end_date");
+        $stmt_lc->execute([':start_date' => $start_date, ':end_date' => $end_date]);
         $libur_cabang = [];
         foreach ($stmt_lc->fetchAll(PDO::FETCH_ASSOC) as $lc) {
             $libur_cabang[$lc['id_cabang']][$lc['tanggal']] = $lc['status'];
         }
 
-        // d. Cuti Pegawai Bulan Ini (Approved)
-        $stmt_cuti = $this->db->prepare("SELECT id_user, tanggal_mulai, tanggal_selesai FROM pengajuan_cuti WHERE status='approved' AND (MONTH(tanggal_mulai)=:bulan1 OR MONTH(tanggal_selesai)=:bulan2) AND (YEAR(tanggal_mulai)=:tahun1 OR YEAR(tanggal_selesai)=:tahun2)");
-        $stmt_cuti->execute([':bulan1' => $bulan, ':bulan2' => $bulan, ':tahun1' => $tahun, ':tahun2' => $tahun]);
+        // d. Cuti Pegawai (Approved, overlap logic)
+        $stmt_cuti = $this->db->prepare("
+            SELECT id_user, tanggal_mulai, tanggal_selesai 
+            FROM pengajuan_cuti 
+            WHERE status='approved' 
+              AND (tanggal_mulai <= :end_date AND tanggal_selesai >= :start_date)
+        ");
+        $stmt_cuti->execute([':start_date' => $start_date, ':end_date' => $end_date]);
         $cuti_pegawai = [];
         foreach ($stmt_cuti->fetchAll(PDO::FETCH_ASSOC) as $c) {
             $start = strtotime($c['tanggal_mulai']);
             $end = strtotime($c['tanggal_selesai']);
             for ($i = $start; $i <= $end; $i += 86400) {
-                if ((int)date('m', $i) == $bulan) {
-                    $cuti_pegawai[$c['id_user']][] = date('Y-m-d', $i);
+                $tgl_cuti = date('Y-m-d', $i);
+                if ($tgl_cuti >= $start_date && $tgl_cuti <= $end_date) {
+                    $cuti_pegawai[$c['id_user']][] = $tgl_cuti;
                 }
             }
         }
 
         // 3. Kalkulasi Hari Wajib Hadir vs Kehadiran Aktual
         $hari_map = [1=>'Senin', 2=>'Selasa', 3=>'Rabu', 4=>'Kamis', 5=>'Jumat', 6=>'Sabtu', 7=>'Minggu'];
-        $jumlah_hari_bulan_ini = cal_days_in_month(CAL_GREGORIAN, $bulan, $tahun);
         
-        // Batasi perhitungan alfa sampai hari ini (jika bulan berjalan)
-        $hari_terakhir_dihitung = $jumlah_hari_bulan_ini;
-        if ($bulan == date('n') && $tahun == date('Y')) {
-            $hari_terakhir_dihitung = date('j');
-        } else if (($tahun == date('Y') && $bulan > date('n')) || $tahun > date('Y')) {
-            $hari_terakhir_dihitung = 0; // Bulan depan, belum ada hari
-        }
+        // Batasi hari terakhir dihitung sampai hari ini, tapi tidak boleh lebih dari end_date
+        $loop_end_date = min($end_date, date('Y-m-d'));
 
         foreach ($pegawai as &$p) {
             $id_cabang = $p['id_cabang'];
             $id_user = $p['id_user'];
             $total_wajib_hadir = 0;
 
-            for ($d = 1; $d <= $hari_terakhir_dihitung; $d++) {
-                $tgl = sprintf("%04d-%02d-%02d", $tahun, $bulan, $d);
-                $hari_index = date('N', strtotime($tgl));
-                $nama_hari = $hari_map[$hari_index];
+            // Loop tanggal dari start_date sampai loop_end_date
+            if ($start_date <= $loop_end_date) {
+                $current_time = strtotime($start_date);
+                $end_time = strtotime($loop_end_date);
+                
+                while ($current_time <= $end_time) {
+                    $tgl = date('Y-m-d', $current_time);
+                    $hari_index = date('N', $current_time);
+                    $nama_hari = $hari_map[$hari_index];
+                    
+                    $current_time = strtotime('+1 day', $current_time);
 
                 // Cek Cuti
                 if (isset($cuti_pegawai[$id_user]) && in_array($tgl, $cuti_pegawai[$id_user])) continue;
@@ -125,7 +148,8 @@ class Penggajian {
                     // Hari kerja biasa
                     $total_wajib_hadir++;
                 }
-            }
+                } // end loop while
+            } // end if start <= end
 
             // Hitung Alfa
             $alfa = $total_wajib_hadir - $p['total_hadir'];
@@ -158,7 +182,11 @@ class Penggajian {
     }
 
     // Generate dan simpan penggajian bulanan pegawai
-    public function generateGaji($bulan, $tahun, $id_cabang = null) {
+    public function generateGaji($bulan, $tahun, $id_cabang = null, $is_pph21_active = 1) {
+        $rentang = $this->getRentangWaktuBuku($bulan, $tahun);
+        $start_date = $rentang['start'];
+        $end_date = $rentang['end'];
+
         // Hapus draft yang sudah ada (supaya tombol Re-generate berfungsi memperbarui data)
         if ($id_cabang) {
             $stmt_del = $this->db->prepare("
@@ -187,12 +215,11 @@ class Penggajian {
                 SELECT menit_terlambat FROM absensi 
                 WHERE id_user = :id_user 
                   AND status = 'telat' 
-                  AND MONTH(tanggal) = :bulan 
-                  AND YEAR(tanggal) = :tahun
+                  AND DATE(tanggal) BETWEEN :start_date AND :end_date
             ");
             $stmt_telat->bindParam(':id_user', $p['id_user'], PDO::PARAM_INT);
-            $stmt_telat->bindParam(':bulan', $bulan, PDO::PARAM_INT);
-            $stmt_telat->bindParam(':tahun', $tahun, PDO::PARAM_INT);
+            $stmt_telat->bindParam(':start_date', $start_date);
+            $stmt_telat->bindParam(':end_date', $end_date);
             $stmt_telat->execute();
             $rows_telat = $stmt_telat->fetchAll(PDO::FETCH_ASSOC);
 
@@ -211,13 +238,20 @@ class Penggajian {
             $total_potongan_telat_alfa = $total_denda_telat + $total_denda_alfa + $total_denda_lupa_pulang;
 
             // Hitung Lembur (Tahap 5)
-            $stmt_lembur = $this->db->prepare("SELECT COALESCE(SUM(durasi_jam), 0) FROM pengajuan_lembur WHERE id_user=:id_user AND MONTH(tanggal)=:bulan AND YEAR(tanggal)=:tahun AND status='approved'");
+            $stmt_lembur = $this->db->prepare("
+                SELECT COALESCE(SUM(durasi_jam), 0) 
+                FROM pengajuan_lembur 
+                WHERE id_user=:id_user 
+                  AND tanggal BETWEEN :start_date AND :end_date 
+                  AND status='approved'
+            ");
             $stmt_lembur->bindParam(':id_user', $p['id_user'], PDO::PARAM_INT);
-            $stmt_lembur->bindParam(':bulan', $bulan, PDO::PARAM_INT);
-            $stmt_lembur->bindParam(':tahun', $tahun, PDO::PARAM_INT);
+            $stmt_lembur->bindParam(':start_date', $start_date);
+            $stmt_lembur->bindParam(':end_date', $end_date);
             $stmt_lembur->execute();
             $jam_lembur = (float)$stmt_lembur->fetchColumn();
-            $nilai_overtime = $jam_lembur * ($p['tarif_lembur_per_jam'] ?? 0);
+            $tarif_lembur_aktual = (isset($p['tipe_lembur']) && $p['tipe_lembur'] === 'Project') ? 20000 : 10000;
+            $nilai_overtime = $jam_lembur * $tarif_lembur_aktual;
 
             // Ambil Bonus/THR
             $stmt_bonus = $this->db->prepare("SELECT COALESCE(SUM(nominal), 0) FROM bonus_thr_bulanan WHERE id_user=:id_user AND bulan=:bulan AND tahun=:tahun");
@@ -256,7 +290,8 @@ class Penggajian {
             $status_pajak = $p['status_pajak'] ?? 'TK/0';
             $pot_pph21 = 0;
 
-            if ($bulan >= 1 && $bulan <= 11) {
+            if ($is_pph21_active) {
+                if ($bulan >= 1 && $bulan <= 11) {
                 // 2. Kategori TER
                 $kategori_ter = 'A';
                 if (in_array($status_pajak, ['TK/2', 'TK/3', 'K/1', 'K/2'])) {
@@ -319,6 +354,7 @@ class Penggajian {
                 }
                 
                 if ($pot_pph21 < 0) $pot_pph21 = 0;
+                }
             }
 
             // Gaji bersih
@@ -330,14 +366,14 @@ class Penggajian {
 
             $stmt = $this->db->prepare("
                 INSERT INTO penggajian_bulanan
-                (id_user, bulan, tahun, nilai_gaji_pokok, 
+                (id_user, bulan, tahun, is_pph21_active, nilai_gaji_pokok, 
                  nilai_tunj_jabatan, nilai_tunj_transportasi, nilai_tunj_makan, nilai_tunj_kehadiran, nilai_tunj_lainnya, nilai_bonus, nilai_overtime,
                  tunj_jht_37, tunj_jkk_024, tunj_jk_03, tunj_bpjs_kes_4, tunj_jp_2,
                  pot_jht_2, pot_bpjs_kes_1, pot_jp_1, pot_pph21,
                  total_potongan_telat_alfa, denda_terlambat, denda_alfa, denda_lupa_pulang, status_pajak_snapshot,
                  total_gaji_bersih, status)
                 VALUES 
-                (:id_user, :bulan, :tahun, :gaji_pokok, 
+                (:id_user, :bulan, :tahun, :is_pph21_active, :gaji_pokok, 
                  :tunj_jabatan, :tunj_transportasi, :tunj_makan, :tunj_kehadiran, :tunj_lainnya, :nilai_bonus, :nilai_overtime,
                  :tunj_jht, :tunj_jkk, :tunj_jk, :tunj_bpjs, :tunj_jp,
                  :pot_jht, :pot_bpjs, :pot_jp, :pot_pph21,
@@ -348,6 +384,7 @@ class Penggajian {
             $stmt->bindParam(':id_user',  $p['id_user'], PDO::PARAM_INT);
             $stmt->bindParam(':bulan',    $bulan, PDO::PARAM_INT);
             $stmt->bindParam(':tahun',    $tahun, PDO::PARAM_INT);
+            $stmt->bindParam(':is_pph21_active', $is_pph21_active, PDO::PARAM_INT);
             $stmt->bindParam(':gaji_pokok', $gaji_pokok);
             $stmt->bindParam(':tunj_jabatan', $p['tunj_jabatan']);
             $stmt->bindParam(':tunj_transportasi', $p['tunj_transportasi']);
@@ -592,5 +629,108 @@ class Penggajian {
         }
 
         return $tarif;
+    }
+    // Mengambil detail harian lengkap (Termasuk Cuti, Libur, Alfa, Weekend) untuk modal UI
+    public function getDetailHarianLengkap($id_user, $bulan, $tahun) {
+        // Ambil info id_cabang user
+        $user_info = $this->db->prepare("SELECT id_cabang FROM users WHERE id_user = :id_user");
+        $user_info->execute([':id_user' => $id_user]);
+        $id_cabang = $user_info->fetchColumn();
+
+        if (!$id_cabang) return []; // User tidak ada
+
+        $rentang = $this->getRentangWaktuBuku($bulan, $tahun);
+        $start_date = $rentang['start'];
+        $end_date = $rentang['end'];
+        $loop_end_date = min($end_date, date('Y-m-d'));
+
+        // 1. Ambil Data Absen Hadir/Telat
+        $stmt_absen = $this->db->prepare("SELECT * FROM absensi WHERE id_user = :id_user AND DATE(tanggal) BETWEEN :start_date AND :end_date");
+        $stmt_absen->execute([':id_user' => $id_user, ':start_date' => $start_date, ':end_date' => $end_date]);
+        $data_absen = [];
+        foreach ($stmt_absen->fetchAll(PDO::FETCH_ASSOC) as $a) {
+            $data_absen[date('Y-m-d', strtotime($a['tanggal']))] = $a;
+        }
+
+        // 2. Ambil Master Libur dan Jam Kerja
+        $stmt_jk = $this->db->query("SELECT id_cabang, hari, is_libur_akhir_pekan FROM jam_kerja_cabang");
+        $jam_kerja = [];
+        foreach ($stmt_jk->fetchAll(PDO::FETCH_ASSOC) as $jk) {
+            $jam_kerja[$jk['id_cabang']][$jk['hari']] = $jk['is_libur_akhir_pekan'];
+        }
+
+        $stmt_ln = $this->db->prepare("SELECT tanggal FROM hari_libur WHERE tanggal BETWEEN :start_date AND :end_date");
+        $stmt_ln->execute([':start_date' => $start_date, ':end_date' => $end_date]);
+        $libur_nasional = array_column($stmt_ln->fetchAll(PDO::FETCH_ASSOC), 'tanggal');
+
+        $stmt_lc = $this->db->prepare("SELECT tanggal, status FROM libur_override WHERE id_cabang = :id_cabang AND tanggal BETWEEN :start_date AND :end_date");
+        $stmt_lc->execute([':id_cabang' => $id_cabang, ':start_date' => $start_date, ':end_date' => $end_date]);
+        $libur_cabang = [];
+        foreach ($stmt_lc->fetchAll(PDO::FETCH_ASSOC) as $lc) {
+            $libur_cabang[$lc['tanggal']] = $lc['status'];
+        }
+
+        $stmt_cuti = $this->db->prepare("SELECT tanggal_mulai, tanggal_selesai FROM pengajuan_cuti WHERE id_user = :id_user AND status='approved' AND (tanggal_mulai <= :end_date AND tanggal_selesai >= :start_date)");
+        $stmt_cuti->execute([':id_user' => $id_user, ':start_date' => $start_date, ':end_date' => $end_date]);
+        $cuti_pegawai = [];
+        foreach ($stmt_cuti->fetchAll(PDO::FETCH_ASSOC) as $c) {
+            $start = strtotime($c['tanggal_mulai']);
+            $end = strtotime($c['tanggal_selesai']);
+            for ($i = $start; $i <= $end; $i += 86400) {
+                $tgl_cuti = date('Y-m-d', $i);
+                if ($tgl_cuti >= $start_date && $tgl_cuti <= $end_date) {
+                    $cuti_pegawai[] = $tgl_cuti;
+                }
+            }
+        }
+
+        // 3. Bangun Kalender Array (Hanya sampai loop_end_date)
+        $hari_map = [1=>'Senin', 2=>'Selasa', 3=>'Rabu', 4=>'Kamis', 5=>'Jumat', 6=>'Sabtu', 7=>'Minggu'];
+        $hasil = [];
+
+        if ($start_date <= $loop_end_date) {
+            $current_time = strtotime($start_date);
+            $end_time = strtotime($loop_end_date);
+            
+            while ($current_time <= $end_time) {
+                $tgl = date('Y-m-d', $current_time);
+                $hari_index = date('N', $current_time);
+                $nama_hari = $hari_map[$hari_index];
+                
+                if (isset($data_absen[$tgl])) {
+                    // Masukkan baris absen yang ada di DB
+                    $hasil[] = $data_absen[$tgl];
+                } else {
+                    // Deteksi hari kosong
+                    $status_hari = 'alfa';
+                    $is_override_masuk = (isset($libur_cabang[$tgl]) && $libur_cabang[$tgl] === 'tetap_masuk');
+                    
+                    if (in_array($tgl, $cuti_pegawai)) {
+                        $status_hari = 'cuti';
+                    } else if (isset($libur_cabang[$tgl]) && $libur_cabang[$tgl] === 'libur_lokal') {
+                        $status_hari = 'libur';
+                    } else if (in_array($tgl, $libur_nasional) && !$is_override_masuk) {
+                        $status_hari = 'libur';
+                    } else if ((!isset($jam_kerja[$id_cabang][$nama_hari]) || $jam_kerja[$id_cabang][$nama_hari] == 1) && !$is_override_masuk) {
+                        $status_hari = 'weekend';
+                    }
+
+                    $hasil[] = [
+                        'id_absensi' => null, // flag bahwa tidak ada record di DB
+                        'id_user' => $id_user,
+                        'tanggal' => $tgl,
+                        'jam_masuk' => null,
+                        'jam_pulang' => null,
+                        'status' => $status_hari,
+                        'menit_terlambat' => 0,
+                        'foto_masuk' => null,
+                        'foto_pulang' => null
+                    ];
+                }
+                $current_time = strtotime('+1 day', $current_time);
+            }
+        }
+        
+        return $hasil;
     }
 }

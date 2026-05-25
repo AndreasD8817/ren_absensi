@@ -11,23 +11,36 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
 
     <!-- Konten Utama -->
     <main class="flex-1 overflow-y-auto p-8">
-        <div class="flex justify-between items-center mb-8">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Kelola Pegawai</h2>
                 <p class="text-gray-500 text-sm mt-1">Daftar seluruh pegawai terdaftar di sistem PT REN</p>
             </div>
-            <button onclick="bukaModalTambah()" class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl shadow-md shadow-blue-500/20 hover:bg-blue-800 active:scale-95 transition-all">
-                <i class="fa-solid fa-plus"></i> Tambah Pegawai
-            </button>
+            <div class="flex gap-2">
+                <button onclick="bukaModalImport()" class="flex items-center gap-2 px-4 py-2.5 bg-green-100 text-green-700 text-sm font-bold rounded-xl hover:bg-green-200 active:scale-95 transition-all">
+                    <i class="fa-solid fa-file-import"></i> Import CSV
+                </button>
+                <button onclick="bukaModalTambah()" class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl shadow-md shadow-blue-500/20 hover:bg-blue-800 active:scale-95 transition-all">
+                    <i class="fa-solid fa-plus"></i> Tambah Pegawai
+                </button>
+            </div>
         </div>
 
         <!-- Tabel -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                <p class="font-semibold text-gray-700">Total: <span class="text-primary font-bold"><?= count($pegawai) ?> Pegawai</span></p>
-                <div class="relative">
-                    <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                    <input type="text" id="searchInput" onkeyup="filterTabel()" placeholder="Cari nama, NIP, jabatan..." class="pl-8 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none w-64">
+            <div class="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <p class="font-semibold text-gray-700">Total: <span class="text-primary font-bold" id="totalRecords"><?= count($pegawai) ?> Pegawai</span></p>
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <select id="filterCabang" onchange="filterAndPaginate()" class="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                        <option value="">Semua Cabang</option>
+                        <?php foreach($semua_cabang as $c): ?>
+                        <option value="<?= esc($c['nama_cabang']) ?>"><?= esc($c['nama_cabang']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="relative w-full sm:w-64">
+                        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                        <input type="text" id="searchInput" onkeyup="filterAndPaginate()" placeholder="Cari NIP, nama..." class="pl-8 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none w-full">
+                    </div>
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -74,8 +87,11 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                                     <button onclick='bukaModalEdit(<?= json_encode($p) ?>)' class="w-8 h-8 bg-blue-50 text-primary rounded-lg hover:bg-blue-100 transition-colors" title="Edit">
                                         <i class="fa-solid fa-pen-to-square text-xs"></i>
                                     </button>
-                                    <button onclick="toggleStatus(<?= $p['id_user'] ?>, <?= $p['is_active'] ? 1 : 0 ?>)" class="w-8 h-8 <?= $p['is_active'] ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-500 hover:bg-green-100' ?> rounded-lg transition-colors" title="<?= $p['is_active'] ? 'Nonaktifkan' : 'Aktifkan' ?>">
+                                    <button onclick="toggleStatus(<?= $p['id_user'] ?>, <?= $p['is_active'] ? 1 : 0 ?>)" class="w-8 h-8 <?= $p['is_active'] ? 'bg-orange-50 text-orange-500 hover:bg-orange-100' : 'bg-green-50 text-green-500 hover:bg-green-100' ?> rounded-lg transition-colors" title="<?= $p['is_active'] ? 'Nonaktifkan' : 'Aktifkan' ?>">
                                         <i class="fa-solid <?= $p['is_active'] ? 'fa-user-slash' : 'fa-user-check' ?> text-xs"></i>
+                                    </button>
+                                    <button onclick="hapusPegawai(<?= $p['id_user'] ?>, '<?= esc($p['nama_lengkap']) ?>')" class="w-8 h-8 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors" title="Hapus Permanen">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
                                     </button>
                                 </div>
                             </td>
@@ -84,8 +100,63 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                     </tbody>
                 </table>
             </div>
+            <!-- Pagination Controls -->
+            <div class="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm" id="paginationControls">
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-500 font-medium">Tampilkan</span>
+                    <select id="perPage" onchange="filterAndPaginate()" class="px-2 py-1 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-primary">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                    <span class="text-gray-500 font-medium" id="paginationInfo">dari 0 pegawai</span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="prevPage()" id="btnPrev" class="px-4 py-2 border border-gray-200 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                        Sebelumnya
+                    </button>
+                    <button onclick="nextPage()" id="btnNext" class="px-4 py-2 border border-gray-200 rounded-xl text-gray-600 font-semibold hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                        Selanjutnya
+                    </button>
+                </div>
+            </div>
         </div>
     </main>
+</div>
+
+<!-- ==================== MODAL IMPORT CSV ==================== -->
+<div id="modal-import" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div class="flex justify-between items-center p-6 border-b">
+            <h3 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-file-import text-green-600 mr-2"></i>Import Pegawai via CSV</h3>
+            <button onclick="tutupModal('modal-import')" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <form id="form-import" onsubmit="submitImport(event)" class="p-6 space-y-4">
+            <?= csrf_field() ?>
+            <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
+                <p class="font-bold mb-1"><i class="fa-solid fa-circle-info mr-1"></i> Format File CSV:</p>
+                <ul class="list-disc pl-5 space-y-1 mt-2 text-xs">
+                    <li>Pastikan file berformat <b>.csv</b> (Comma Delimited).</li>
+                    <li>Baris pertama (header) akan diabaikan.</li>
+                    <li>Urutan kolom: <b>NIP, Nama Lengkap, Username, Password, Role (pegawai/admin_cabang), ID Cabang, Jabatan, Gaji Pokok, Tipe Lembur (Project/Non-Project), Tunj Jabatan, Tunj Transport, Tunj Makan, Tunj Kehadiran, Tunj Lainnya</b></li>
+                </ul>
+                <a href="<?= BASE_URL ?>/superadmin/download_template_pegawai" class="inline-block mt-3 px-3 py-1.5 bg-white border border-blue-200 text-blue-700 font-bold rounded-lg hover:bg-blue-50 transition-colors text-xs">
+                    <i class="fa-solid fa-download mr-1"></i> Download Template CSV
+                </a>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih File CSV</label>
+                <input type="file" name="file_csv" accept=".csv" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4">
+                <button type="button" onclick="tutupModal('modal-import')" class="px-5 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">Batal</button>
+                <button type="submit" id="btn-submit-import" class="px-5 py-2.5 text-sm bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors">Upload & Import</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- ==================== MODAL TAMBAH ==================== -->
@@ -111,10 +182,17 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Lengkap *</label>
                 <input name="nama_lengkap" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Nama sesuai KTP">
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Jabatan</label>
-                    <input name="jabatan" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Jabatan / Posisi">
+                    <input name="jabatan" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: Staff IT">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Tipe Pekerjaan *</label>
+                    <select name="tipe_lembur" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+                        <option value="Non-Project">Non-Project (Kantor)</option>
+                        <option value="Project">Project (Lapangan)</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Role *</label>
@@ -210,10 +288,17 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Lengkap *</label>
                 <input name="nama_lengkap" id="edit-nama" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Jabatan</label>
                     <input name="jabatan" id="edit-jabatan" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Tipe Pekerjaan *</label>
+                    <select name="tipe_lembur" id="edit-tipe_lembur" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+                        <option value="Non-Project">Non-Project (Kantor)</option>
+                        <option value="Project">Project (Lapangan)</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Role *</label>
@@ -286,11 +371,89 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
 </div>
 
 <script>
-    function filterTabel() {
+    let rows = Array.from(document.querySelectorAll('#tbody-pegawai tr')).filter(r => !r.classList.contains('no-data-row'));
+    let currentPage = 1;
+    let filteredRows = [...rows];
+
+    function filterAndPaginate() {
         const q = document.getElementById('searchInput').value.toLowerCase();
-        document.querySelectorAll('#tbody-pegawai tr').forEach(r => {
-            r.style.display = r.innerText.toLowerCase().includes(q) ? '' : 'none';
+        const cabang = document.getElementById('filterCabang').value.toLowerCase();
+        
+        filteredRows = rows.filter(r => {
+            const textContent = r.innerText.toLowerCase();
+            const matchesQuery = textContent.includes(q);
+            const matchesCabang = cabang === '' || r.querySelector('td:nth-child(3)').innerText.toLowerCase().includes(cabang);
+            return matchesQuery && matchesCabang;
         });
+
+        currentPage = 1;
+        updateTable();
+    }
+
+    function updateTable() {
+        const total = filteredRows.length;
+        document.getElementById('totalRecords').innerText = `${total} Pegawai`;
+
+        rows.forEach(r => r.style.display = 'none');
+
+        const rowsPerPage = parseInt(document.getElementById('perPage').value);
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = Math.min(start + rowsPerPage, total);
+
+        for (let i = start; i < end; i++) {
+            filteredRows[i].style.display = '';
+        }
+
+        document.getElementById('paginationInfo').innerText = `dari ${total} pegawai`;
+        document.getElementById('btnPrev').disabled = currentPage === 1 || total === 0;
+        document.getElementById('btnNext').disabled = end >= total || total === 0;
+    }
+
+    function prevPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            updateTable();
+        }
+    }
+
+    function nextPage() {
+        const total = filteredRows.length;
+        const rowsPerPage = parseInt(document.getElementById('perPage').value);
+        if (currentPage * rowsPerPage < total) {
+            currentPage++;
+            updateTable();
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        if(rows.length > 0) filterAndPaginate();
+    });
+
+    async function hapusPegawai(id_user, nama) {
+        const { isConfirmed } = await Swal.fire({
+            title: 'Hapus Permanen?',
+            html: `Anda yakin ingin menghapus <b>${nama}</b> secara permanen?<br><br><span class="text-sm text-red-600">Semua data absensi, foto wajah, pengajuan cuti, dan slip gaji akan dihapus permanen dari server dan tidak bisa dikembalikan.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Hapus Permanen!'
+        });
+
+        if (isConfirmed) {
+            Swal.fire({ title: 'Menghapus...', text: 'Sedang membersihkan foto dan data', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const resp = await fetch('<?= BASE_URL ?>/superadmin/hapus_pegawai', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ id_user, csrf_token: '<?= csrf_token() ?>' })
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                Swal.fire('Terhapus!', data.message, 'success').then(() => location.reload());
+            } else {
+                Swal.fire('Gagal', data.message, 'error');
+            }
+        }
     }
 
     function bukaModalTambah() {
@@ -299,11 +462,18 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
         document.getElementById('modal-tambah').classList.add('flex');
     }
 
+    function bukaModalImport() {
+        document.getElementById('form-import').reset();
+        document.getElementById('modal-import').classList.remove('hidden');
+        document.getElementById('modal-import').classList.add('flex');
+    }
+
     function bukaModalEdit(data) {
         document.getElementById('edit-id_user').value  = data.id_user;
         document.getElementById('edit-nip').value      = data.nip;
         document.getElementById('edit-nama').value     = data.nama_lengkap;
         document.getElementById('edit-jabatan').value  = data.jabatan;
+        document.getElementById('edit-tipe_lembur').value = data.tipe_lembur || 'Non-Project';
         document.getElementById('edit-role').value     = data.role;
         document.getElementById('edit-id_cabang').value = data.id_cabang;
         document.getElementById('edit-gaji').value     = data.gaji_pokok;
@@ -335,6 +505,23 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
         });
         const data = await resp.json();
         btn.innerHTML = 'Simpan Pegawai'; btn.disabled = false;
+        if (data.status === 'success') {
+            Swal.fire('Berhasil!', data.message, 'success').then(() => location.reload());
+        } else {
+            Swal.fire('Gagal', data.message, 'error');
+        }
+    }
+
+    async function submitImport(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btn-submit-import');
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Mengimpor...';
+        btn.disabled = true;
+        const resp = await fetch('<?= BASE_URL ?>/superadmin/import_pegawai_csv', {
+            method: 'POST', body: new FormData(document.getElementById('form-import'))
+        });
+        const data = await resp.json();
+        btn.innerHTML = 'Upload & Import'; btn.disabled = false;
         if (data.status === 'success') {
             Swal.fire('Berhasil!', data.message, 'success').then(() => location.reload());
         } else {

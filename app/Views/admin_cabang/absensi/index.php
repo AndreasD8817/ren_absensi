@@ -167,6 +167,9 @@ const statusBadge = {
     hadir:  '<span class="px-2 py-1 bg-green-100 text-green-700 rounded-full font-bold">Hadir</span>',
     telat:  '<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full font-bold">Terlambat</span>',
     alfa:   '<span class="px-2 py-1 bg-red-100 text-red-700 rounded-full font-bold">Alfa</span>',
+    cuti:   '<span class="px-2 py-1 bg-teal-100 text-teal-700 rounded-full font-bold">Cuti</span>',
+    libur:  '<span class="px-2 py-1 bg-gray-100 text-gray-500 rounded-full font-bold">Libur</span>',
+    weekend:'<span class="px-2 py-1 bg-gray-100 text-gray-500 rounded-full font-bold">Libur (Weekend)</span>',
 };
 
 function bukaModal(id) {

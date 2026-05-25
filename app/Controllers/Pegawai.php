@@ -21,10 +21,22 @@ class Pegawai extends Controller {
         $absensiModel = $this->model('Absensi');
         $insentifModel = $this->model('Insentif');
 
+        $penggajianModel = $this->model('Penggajian');
+
         // Ambil status absen hari ini & riwayat untuk ditampilkan di dashboard
         $data['absensi_hari_ini'] = $absensiModel->getAbsensiHariIni($id_user);
-        $data['riwayat']          = $absensiModel->getRiwayat($id_user, 5);
+        $data['kalender_absen']   = $penggajianModel->getDetailHarianLengkap($id_user, date('n'), date('Y'));
         $data['riwayat_insentif'] = $insentifModel->getRiwayatPegawai($id_user, 6);
+
+        // Ambil info timezone cabang untuk jam digital real-time
+        $cabang = $absensiModel->getInfoCabang($_SESSION['user']['id_cabang']);
+        $timezone = $cabang['timezone'] ?? 'Asia/Jakarta';
+        $dt = new DateTime('now', new DateTimeZone($timezone));
+        
+        $data['server_h'] = $dt->format('H');
+        $data['server_m'] = $dt->format('i');
+        $data['server_s'] = $dt->format('s');
+        $data['server_date'] = $dt->format('Y-m-d');
 
         // Ambil Pengumuman Aktif
         $db = (new Database())->getConnection();
@@ -69,22 +81,34 @@ class Pegawai extends Controller {
             return;
         }
 
-        // Simpan foto ke folder uploads
-        $img = base64_decode(str_replace([' ', 'data:image/jpeg;base64,'], ['+', ''], $foto_base64));
-        $nama_file = 'absen_' . $id_user . '_' . time() . '.jpg';
-        $dir_uploads = PUBLIC_PATH . '/uploads/';
+        // Restrukturisasi Folder dan Nama Foto
+        $nip = $_SESSION['user']['nip'] ?? $id_user; // Gunakan NIP jika ada
+        $date_str = date('Ymd');
+        $year = date('Y');
+        $month = date('m');
+        
+        $nama_file_baru = "{$nip}_{$mode}_{$date_str}_" . time() . ".jpg";
+        $folder_relatif = "{$year}/{$month}";
+        
+        $dir_uploads = PUBLIC_PATH . "/uploads/$folder_relatif/";
         if (!is_dir($dir_uploads)) mkdir($dir_uploads, 0777, true);
-        file_put_contents($dir_uploads . $nama_file, $img);
+        
+        // Simpan foto ke folder public/uploads/YYYY/MM/
+        $img = base64_decode(str_replace([' ', 'data:image/jpeg;base64,'], ['+', ''], $foto_base64));
+        file_put_contents($dir_uploads . $nama_file_baru, $img);
+
+        // Nama file yang masuk ke Database (agar kompatibel dengan foto lama)
+        $nama_file_db = "{$folder_relatif}/{$nama_file_baru}";
 
         // Ambil timezone cabang (default WIB jika belum diset)
         $timezone = $cabang['timezone'] ?? 'Asia/Jakarta';
 
         // Pilih fungsi simpan berdasarkan mode absen
         if ($mode === 'pulang') {
-            $result = $absensiModel->simpanAbsenPulang($id_user, $lat, $lng, $nama_file, $timezone);
+            $result = $absensiModel->simpanAbsenPulang($id_user, $lat, $lng, $nama_file_db, $timezone);
             if ($result['status']) catat_log('ABSEN_PULANG', 'Absensi', 'Melakukan absen pulang');
         } else {
-            $result = $absensiModel->simpanAbsenMasuk($id_user, $lat, $lng, $nama_file, $id_cabang, $timezone);
+            $result = $absensiModel->simpanAbsenMasuk($id_user, $lat, $lng, $nama_file_db, $id_cabang, $timezone);
             if ($result['status']) catat_log('ABSEN_MASUK', 'Absensi', 'Melakukan absen masuk');
         }
 
@@ -99,6 +123,7 @@ class Pegawai extends Controller {
         $data['judul'] = 'Pengajuan Cuti / Izin | PT REN';
         $cutiModel     = $this->model('Cuti');
         $data['riwayat_cuti'] = $cutiModel->getRiwayatPegawai($_SESSION['user']['id_user']);
+        $data['sisa_cuti'] = $cutiModel->getSisaCutiTahunan($_SESSION['user']['id_user'], date('Y'));
         
         $this->view('layouts/header', $data);
         $this->view('pegawai/cuti', $data);
