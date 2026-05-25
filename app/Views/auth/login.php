@@ -46,6 +46,20 @@
                     <?php unset($_SESSION['flash_success']); ?>
                 <?php endif; ?>
 
+                <?php if(isset($block_android) && $block_android): ?>
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-center shadow-inner">
+                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fa-solid fa-mobile-screen-button text-red-500 text-3xl"></i>
+                        </div>
+                        <h3 class="text-red-700 font-bold text-lg mb-2">Akses Ditolak</h3>
+                        <p class="text-xs text-red-600 font-medium mb-4 leading-relaxed">
+                            Berdasarkan kebijakan keamanan terbaru, pengguna perangkat Android <strong>DIWAJIBKAN</strong> menggunakan Aplikasi Resmi (APK) PT REN untuk melakukan absensi.
+                        </p>
+                        <div class="bg-white p-3 rounded-lg border border-red-100">
+                            <p class="text-[11px] text-gray-500 font-medium">Silakan hubungi Administrator / HRD untuk mendapatkan *link* unduhan aplikasi resmi kami.</p>
+                        </div>
+                    </div>
+                <?php else: ?>
                 <form class="space-y-5" action="<?= BASE_URL ?>/auth/proses_login" method="POST">
                     <?= csrf_field() ?>
                     <div>
@@ -80,6 +94,7 @@
                         </button>
                     </div>
                 </form>
+                <?php endif; ?>
             </div>
             
             <div class="mt-6 text-center text-xs text-gray-400 font-medium">

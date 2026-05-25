@@ -15,15 +15,38 @@ class Auth extends Controller {
             exit;
         }
 
+        $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+        $is_android = stripos($user_agent, 'Android') !== false;
+        
+        // Cek Signature Rahasia dari Cangkang APK
+        $is_apk = stripos($user_agent, 'PTREN_SECURE_APP_V1') !== false;
+        
+        $data['block_android'] = false;
+        if ($is_android && !$is_apk) {
+            $data['block_android'] = true;
+        }
+
         $data['judul'] = 'Login | Aplikasi Absensi PT REN';
         $this->view('layouts/header', $data);
-        $this->view('auth/login');
+        $this->view('auth/login', $data);
         $this->view('layouts/footer');
     }
 
     public function proses_login() {
         // Pastikan request adalah POST
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            
+            // Satpam API: Cek kembali saat proses Submit Login
+            $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+            $is_android = stripos($user_agent, 'Android') !== false;
+            $is_apk = stripos($user_agent, 'PTREN_SECURE_APP_V1') !== false;
+            
+            if ($is_android && !$is_apk) {
+                $_SESSION['flash_error'] = 'AKSES DITOLAK: Anda ketahuan curang! Gunakan Aplikasi APK Resmi PT REN.';
+                header('Location: ' . BASE_URL . '/auth');
+                exit;
+            }
+
             $nip = trim($_POST['nip']);
             $password = $_POST['password'];
             $ip_address = $_SERVER['REMOTE_ADDR'];

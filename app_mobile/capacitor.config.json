@@ -1,0 +1,14 @@
+{
+  "appId": "com.ptren.absensi",
+  "appName": "PT REN Absensi",
+  "webDir": "www",
+  "server": {
+    "url": "http://192.168.1.10/ren_absensi/public",
+    "cleartext": true,
+    "allowNavigation": [
+      "192.168.1.10",
+      "*"
+    ]
+  },
+  "appendUserAgent": "PTREN_SECURE_APP_V1"
+}

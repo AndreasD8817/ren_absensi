@@ -5,8 +5,8 @@ RewriteEngine On
 # =============================================
 # Redirect HTTP ke HTTPS (Laragon SSL)
 # =============================================
-RewriteCond %{HTTPS} off
-RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+# RewriteCond %{HTTPS} off
+# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 # Abaikan file atau folder yang sudah ada (misal folder assets/uploads)
 RewriteCond %{REQUEST_FILENAME} !-f
