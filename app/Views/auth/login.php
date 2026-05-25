@@ -1,12 +1,12 @@
-<div class="min-h-screen bg-gray-100 flex flex-col sm:justify-center sm:py-12 bg-cover bg-center relative" style="background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');">
+<div class="min-h-screen bg-gray-100 flex flex-col justify-center py-10 px-4 sm:px-0 bg-cover bg-center relative" style="background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');">
     <!-- Overlay gelap dengan perpaduan biru dan #A3195A -->
     <div class="absolute inset-0 bg-gradient-to-br from-blue-900/90 via-blue-900/80 to-[#A3195A]/80 backdrop-blur-sm"></div>
 
-    <!-- Container khusus seukuran Mobile -->
-    <div class="relative w-full max-w-md mx-auto bg-gray-50 min-h-screen sm:min-h-[85vh] sm:rounded-[30px] shadow-2xl flex flex-col sm:border border-gray-200">
+    <!-- Container Khusus Login -->
+    <div class="relative w-full max-w-md mx-auto bg-gray-50 rounded-[30px] shadow-2xl flex flex-col sm:border border-gray-200 overflow-hidden">
         
         <!-- Header melengkung seperti Dashboard dengan perpaduan warna -->
-        <div class="bg-gradient-to-br from-primary via-blue-800 to-[#A3195A] pt-12 pb-20 px-6 text-center text-white rounded-b-[40px] shadow-lg relative overflow-hidden">
+        <div class="bg-gradient-to-br from-primary via-blue-800 to-[#A3195A] pt-12 pb-20 px-6 text-center text-white rounded-b-[40px] shadow-lg relative shrink-0">
             <!-- Dekorasi background melengkung abstrak -->
             <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-white/10 blur-xl"></div>
             <div class="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 rounded-full bg-[#A3195A]/40 blur-lg"></div>

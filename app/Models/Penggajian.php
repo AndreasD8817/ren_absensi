@@ -32,7 +32,7 @@ class Penggajian {
             SELECT 
                 u.id_user, u.nip, u.nama_lengkap, u.jabatan, u.gaji_pokok, u.id_cabang,
                 u.status_pajak, u.saldo_awal_pph21, u.tunj_jabatan, u.tunj_transportasi, u.tunj_makan, u.tunj_kehadiran, u.tunj_lainnya,
-                c.nama_cabang, c.denda_1_5, c.denda_6_10, c.denda_11_15, c.denda_16_30, c.denda_31_60, c.denda_alfa, c.denda_tidak_absen_pulang,
+                c.nama_cabang, c.umk, c.denda_1_5, c.denda_6_10, c.denda_11_15, c.denda_16_30, c.denda_31_60, c.denda_alfa, c.denda_tidak_absen_pulang,
                 c.tarif_lembur_per_jam,
                 COUNT(a.id_absensi) AS total_hadir,
                 SUM(CASE WHEN a.status = 'telat' THEN 1 ELSE 0 END) AS total_telat,
@@ -263,29 +263,33 @@ class Penggajian {
 
             $gaji_pokok = $p['gaji_pokok'];
             $total_tunjangan_tetap = $p['tunj_jabatan'] + $p['tunj_transportasi'] + $p['tunj_makan'] + $p['tunj_kehadiran'] + $p['tunj_lainnya'];
-            $basis_bpjs_jamsostek = $gaji_pokok + $total_tunjangan_tetap; // Overtime tidak termasuk basis BPJS
+            $pendapatan_kotor_tetap = $gaji_pokok + $total_tunjangan_tetap; // Total aktual yang didapat
+            
+            // BASIS BPJS = Menggunakan UMK jika diset, jika 0 fallback ke Total Gaji & Tunjangan Tetap
+            $umk = isset($p['umk']) ? (float)$p['umk'] : 0;
+            $basis_bpjs_jamsostek = $umk > 0 ? $umk : $pendapatan_kotor_tetap;
 
-            // Tunjangan Perusahaan (Berdasarkan Basis Gaji+Tunjangan)
+            // Tunjangan Perusahaan (JHT, JKK, JK, JP) menggunakan Basis UMK
             $tunj_jht_37     = $basis_bpjs_jamsostek * 0.037;
             $tunj_jkk_024    = $basis_bpjs_jamsostek * 0.0024;
             $tunj_jk_03      = $basis_bpjs_jamsostek * 0.003;
             $tunj_jp_2       = $basis_bpjs_jamsostek * 0.02;
             
-            // BPJS Kesehatan Basis Min (UMK) & Max (~12jt)
-            $basis_bpjs_kes  = max($basis_bpjs_jamsostek, 5290000);
+            // BPJS Kesehatan Basis UMK (Min 5,29jt jika UMK belum diset) & Max (~12jt)
+            $basis_bpjs_kes  = $umk > 0 ? $umk : max($pendapatan_kotor_tetap, 5290000);
             if ($basis_bpjs_kes > 12000000) $basis_bpjs_kes = 12000000; // Cap limit BPJS Kes
             $tunj_bpjs_kes_4 = $basis_bpjs_kes * 0.04;
             $pot_bpjs_kes_1  = $basis_bpjs_kes * 0.01;
 
-            // Potongan BPJS Pegawai
+            // Potongan BPJS Pegawai menggunakan Basis UMK
             $pot_jht_2       = $basis_bpjs_jamsostek * 0.02;
             $pot_jp_1        = $basis_bpjs_jamsostek * 0.01;
 
             // -------------------------------------------------------------
             // PPh 21 CALCULATION (Skema TER PP 58 Tahun 2023)
             // -------------------------------------------------------------
-            // 1. Penghasilan Bruto (Gaji Pokok + Semua Tunjangan + BPJS Kes & Jamsostek yang dibayar perusahaan kecuali JHT & JP)
-            $pendapatan_bruto = $basis_bpjs_jamsostek + $nilai_overtime + $nilai_bonus + $tunj_jkk_024 + $tunj_jk_03 + $tunj_bpjs_kes_4;
+            // 1. Penghasilan Bruto (Total Aktual + BPJS Kes & Jamsostek yang dibayar perusahaan kecuali JHT & JP)
+            $pendapatan_bruto = $pendapatan_kotor_tetap + $nilai_overtime + $nilai_bonus + $tunj_jkk_024 + $tunj_jk_03 + $tunj_bpjs_kes_4;
 
             $status_pajak = $p['status_pajak'] ?? 'TK/0';
             $pot_pph21 = 0;

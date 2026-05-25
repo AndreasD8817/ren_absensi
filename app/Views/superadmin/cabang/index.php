@@ -124,6 +124,11 @@ function renderFormCabang($prefix = '') {
             <input name="nama_cabang" id="<?= $prefix ?>nama_cabang" required class="<?= $inputClass ?>" placeholder="Contoh: Kantor Pusat Jakarta">
         </div>
         <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Nilai UMK Daerah (Rp) <span class="text-gray-400 font-normal">(Opsional)</span></label>
+            <input name="umk" id="<?= $prefix ?>umk" type="number" class="<?= $inputClass ?>" placeholder="Contoh: 5290000">
+            <p class="text-[10px] text-gray-400 mt-1">Digunakan sebagai Basis Potongan BPJS & Pensiun. Biarkan kosong untuk gunakan total gaji & tunjangan.</p>
+        </div>
+        <div>
             <label class="block text-xs font-semibold text-gray-600 mb-1">Zona Waktu (Timezone) *</label>
             <select name="timezone" id="<?= $prefix ?>timezone" required class="<?= $inputClass ?>">
                 <option value="Asia/Jakarta">WIB — Waktu Indonesia Barat (UTC+7) — Jawa, Sumatera, Kalimantan Barat & Tengah</option>
@@ -169,6 +174,7 @@ function renderFormCabang($prefix = '') {
     function bukaModalEdit(d) {
         document.getElementById('edit-id_cabang').value    = d.id_cabang;
         document.getElementById('edit-nama_cabang').value  = d.nama_cabang;
+        document.getElementById('edit-umk').value          = d.umk || '';
         document.getElementById('edit-timezone').value     = d.timezone || 'Asia/Jakarta';
         document.getElementById('edit-latitude').value     = d.latitude;
         document.getElementById('edit-longitude').value    = d.longitude;
