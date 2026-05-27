@@ -68,7 +68,7 @@
                             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <i class="fa-regular fa-id-card text-gray-400"></i>
                             </div>
-                            <input id="nip" name="nip" type="text" inputmode="numeric" required class="block w-full pl-11 px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#A3195A]/50 focus:border-[#A3195A] focus:bg-white text-sm transition-all" placeholder="Contoh: 123456">
+                            <input id="nip" name="nip" type="text" required class="block w-full pl-11 px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#A3195A]/50 focus:border-[#A3195A] focus:bg-white text-sm transition-all" placeholder="Contoh: 230118-001">
                         </div>
                     </div>
 

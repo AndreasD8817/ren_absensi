@@ -168,12 +168,24 @@
         const canvas = document.getElementById('canvas-kamera');
         const context = canvas.getContext('2d');
         
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // --- PROSES KOMPRESI (CLIENT-SIDE) ---
+        // Batasi resolusi maksimal lebar 600px untuk menghemat kapasitas hosting
+        let max_width = 600;
+        let final_width = video.videoWidth;
+        let final_height = video.videoHeight;
         
-        // Convert ke base64 (Format JPEG kualitas menengah agar ringan)
-        const fotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+        if (final_width > max_width) {
+            let ratio = max_width / final_width;
+            final_width = max_width;
+            final_height = final_height * ratio;
+        }
+
+        canvas.width = final_width;
+        canvas.height = final_height;
+        context.drawImage(video, 0, 0, final_width, final_height);
+        
+        // Convert ke base64 dengan format JPEG kualitas rendah/menengah (60%)
+        const fotoBase64 = canvas.toDataURL('image/jpeg', 0.6);
 
         // UI Loading State pada tombol
         const btn = document.getElementById('btn-shutter');

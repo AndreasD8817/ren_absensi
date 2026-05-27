@@ -9,9 +9,21 @@ class AdminCabang extends Controller {
             exit;
         }
         if ($_SESSION['user']['role'] !== 'admin_cabang') {
-            $roleUrl = $_SESSION['user']['role'] === 'admin_cabang' ? 'admincabang' : $_SESSION['user']['role'];
-            header('Location: ' . BASE_URL . '/' . $roleUrl);
+            header('Location: ' . BASE_URL . '/' . $_SESSION['user']['role']);
             exit;
+        }
+
+        // Cek Mode Pemeliharaan
+        $maintenanceFile = APP_PATH . '/Config/maintenance.json';
+        if (file_exists($maintenanceFile)) {
+            $maintenanceData = json_decode(file_get_contents($maintenanceFile), true);
+            if (isset($maintenanceData['is_maintenance']) && $maintenanceData['is_maintenance'] == true) {
+                session_destroy();
+                session_start();
+                $_SESSION['flash_error'] = 'Sistem sedang dalam perbaikan rutin. Sesi Anda dihentikan sementara.';
+                header('Location: ' . BASE_URL . '/auth');
+                exit;
+            }
         }
         $this->id_cabang = $_SESSION['user']['id_cabang'];
     }

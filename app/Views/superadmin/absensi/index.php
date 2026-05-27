@@ -13,6 +13,9 @@ $start_str = "26 " . $nama_bulan[$prev_bulan] . " " . $prev_tahun;
 $end_str = "25 " . $nama_bulan[$bulan] . " " . $tahun;
 ?>
 <!-- Halaman Absensi - Superadmin -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <div class="flex h-screen overflow-hidden bg-gray-50">
 
     <?php include_once APP_PATH . '/Views/superadmin/_sidebar.php'; ?>
@@ -183,7 +186,7 @@ $end_str = "25 " . $nama_bulan[$bulan] . " " . $tahun;
             <h3 class="font-bold text-gray-800">Edit Data Absensi</h3>
             <button onclick="tutupModal('modal-edit')" class="text-gray-400 hover:text-red-500"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
-        <form id="form-edit" onsubmit="simpanEdit(event)" class="p-6 space-y-4">
+        <form id="form-edit" onsubmit="simpanEdit(event)" class="p-6 space-y-4" enctype="multipart/form-data">
     <?= csrf_field() ?>
             <input type="hidden" name="id_absensi" id="edit-id_absensi">
             
@@ -197,13 +200,60 @@ $end_str = "25 " . $nama_bulan[$bulan] . " " . $tahun;
             </div>
 
             <div id="jam-fields">
-                <div class="mb-4">
+                <!-- BLOK MASUK -->
+                <div class="mb-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Jam Masuk</label>
-                    <input type="time" name="jam_masuk" id="edit-jam_masuk" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary text-gray-700">
+                    <input type="time" name="jam_masuk" id="edit-jam_masuk" class="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 mb-3">
+                    
+                    <div id="preview-lama-masuk" class="hidden items-center gap-3 p-2.5 bg-white rounded-lg border border-blue-100 mb-3 shadow-sm">
+                        <img src="" id="img-lama-masuk" class="w-12 h-12 object-cover rounded shadow-sm border border-gray-100">
+                        <div class="text-xs text-gray-500 flex-1">
+                            <span class="font-bold text-gray-700 block mb-0.5 text-[10px] uppercase tracking-wider">Bukti Masuk Saat Ini</span>
+                            <span id="lok-lama-masuk" class="font-mono bg-gray-50 px-1 py-0.5 rounded text-[10px]"></span>
+                        </div>
+                    </div>
+
+                    <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wider">Ganti Foto Masuk (Opsional)</label>
+                    <input type="file" name="foto_masuk" id="edit-foto_masuk" accept="image/*" class="w-full text-xs text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 mb-3 bg-white p-1 rounded-xl border border-blue-100">
+                    
+                    <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wider">Titik Koordinat (Lokasi Masuk)</label>
+                    <select name="tipe_lokasi_masuk" id="tipe_lokasi_masuk" onchange="toggleManualLoc('masuk')" class="w-full text-xs p-2.5 bg-white border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-blue-500 text-gray-700 mb-2">
+                        <option value="keep">Biarkan Lokasi Lama / Jangan Diubah</option>
+                        <option value="otomatis">Otomatis (Tarik Koordinat Kantor Cabang)</option>
+                        <option value="manual">Input Manual (Ketik GPS Sendiri)</option>
+                    </select>
+                    <div id="input_manual_masuk" class="hidden flex gap-2">
+                        <input type="text" name="lat_masuk" id="lat_masuk" placeholder="Latitude (-6.xxx)" class="w-1/2 p-2 text-xs border border-gray-200 rounded-lg bg-white outline-none focus:border-blue-500">
+                        <input type="text" name="lng_masuk" id="lng_masuk" placeholder="Longitude (106.xxx)" class="w-1/2 p-2 text-xs border border-gray-200 rounded-lg bg-white outline-none focus:border-blue-500">
+                    </div>
                 </div>
-                <div>
+
+                <!-- BLOK PULANG -->
+                <div class="bg-orange-50/50 p-4 rounded-xl border border-orange-100">
                     <label class="block text-xs font-semibold text-gray-600 mb-1.5">Jam Pulang</label>
-                    <input type="time" name="jam_pulang" id="edit-jam_pulang" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary text-gray-700">
+                    <input type="time" name="jam_pulang" id="edit-jam_pulang" class="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-orange-500 text-gray-700 mb-3">
+                    
+                    <div id="preview-lama-pulang" class="hidden items-center gap-3 p-2.5 bg-white rounded-lg border border-orange-100 mb-3 shadow-sm">
+                        <img src="" id="img-lama-pulang" class="w-12 h-12 object-cover rounded shadow-sm border border-gray-100">
+                        <div class="text-xs text-gray-500 flex-1">
+                            <span class="font-bold text-gray-700 block mb-0.5 text-[10px] uppercase tracking-wider">Bukti Pulang Saat Ini</span>
+                            <span id="lok-lama-pulang" class="font-mono bg-gray-50 px-1 py-0.5 rounded text-[10px]"></span>
+                        </div>
+                    </div>
+
+                    <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wider">Ganti Foto Pulang (Opsional)</label>
+                    <input type="file" name="foto_pulang" id="edit-foto_pulang" accept="image/*" class="w-full text-xs text-gray-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200 mb-3 bg-white p-1 rounded-xl border border-orange-100">
+                    
+                    <label class="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wider">Titik Koordinat (Lokasi Pulang)</label>
+                    <select name="tipe_lokasi_pulang" id="tipe_lokasi_pulang" onchange="toggleManualLoc('pulang')" class="w-full text-xs p-2.5 bg-white border border-gray-200 rounded-lg outline-none focus:ring-1 focus:ring-orange-500 text-gray-700 mb-2">
+                        <option value="keep">Biarkan Lokasi Lama / Jangan Diubah</option>
+                        <option value="otomatis">Otomatis (Tarik Koordinat Kantor Cabang)</option>
+                        <option value="manual">Input Manual (Ketik GPS Sendiri)</option>
+                    </select>
+                    <div id="input_manual_pulang" class="hidden flex gap-2">
+                        <input type="text" name="lat_pulang" id="lat_pulang" placeholder="Latitude (-6.xxx)" class="w-1/2 p-2 text-xs border border-gray-200 rounded-lg bg-white outline-none focus:border-orange-500">
+                        <input type="text" name="lng_pulang" id="lng_pulang" placeholder="Longitude (106.xxx)" class="w-1/2 p-2 text-xs border border-gray-200 rounded-lg bg-white outline-none focus:border-orange-500">
+                    </div>
                 </div>
             </div>
 
@@ -216,8 +266,25 @@ $end_str = "25 " . $nama_bulan[$bulan] . " " . $tahun;
 </div>
 
 <!-- Modal Foto Preview -->
-<div id="modal-foto" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80" onclick="tutupModal('modal-foto')">
+<div id="modal-foto" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80" onclick="if(event.target===this) tutupModal('modal-foto')">
     <img id="foto-preview" src="" class="max-h-[80vh] max-w-[90vw] rounded-2xl shadow-2xl object-contain">
+</div>
+
+<!-- Modal Lokasi & Foto (Leaflet) -->
+<div id="modal-lokasi" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) tutupModal('modal-lokasi')">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden flex flex-col">
+        <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-gray-800 text-sm"><i class="fa-solid fa-map-location-dot text-blue-500 mr-2"></i>Bukti & Lokasi Absen</h3>
+            <button onclick="tutupModal('modal-lokasi')" class="text-gray-400 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <div class="p-5 flex flex-col gap-4">
+            <img id="lokasi-foto" src="" class="w-full h-56 object-cover rounded-2xl border border-gray-200 shadow-inner bg-gray-100">
+            <div id="lokasi-map" class="w-full h-56 rounded-2xl border border-gray-200 shadow-inner z-0 relative"></div>
+            <a id="btn-gmaps" href="#" target="_blank" class="w-full py-3 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-sm rounded-xl text-center transition-colors shadow-sm">
+                <i class="fa-solid fa-location-arrow mr-1"></i> Buka Titik Ini di Google Maps
+            </a>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -248,6 +315,31 @@ function tutupModal(id) {
     m.classList.add('hidden');
 }
 
+let leafletMap = null;
+let leafletMarker = null;
+
+function bukaLokasi(lat, lng, urlFoto) {
+    document.getElementById('lokasi-foto').src = urlFoto;
+    document.getElementById('btn-gmaps').href = `https://www.google.com/maps?q=${lat},${lng}`;
+    
+    bukaModal('modal-lokasi');
+    
+    // Beri jeda 300ms agar animasi modal selesai dan peta dapat mengukur div-nya dengan akurat
+    setTimeout(() => {
+        if (!leafletMap) {
+            leafletMap = L.map('lokasi-map').setView([lat, lng], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(leafletMap);
+            leafletMarker = L.marker([lat, lng]).addTo(leafletMap);
+        } else {
+            leafletMap.invalidateSize();
+            leafletMap.setView([lat, lng], 16);
+            leafletMarker.setLatLng([lat, lng]);
+        }
+    }, 300);
+}
+
 async function lihatDetail(id_user, nama) {
     currentUserId = id_user;
     document.getElementById('modal-detail-nama').textContent = 'Detail: ' + nama;
@@ -271,16 +363,16 @@ async function lihatDetail(id_user, nama) {
         
         // Foto Masuk
         if (a.foto_masuk) {
-            let aksiMasuk = (a.lat_masuk && a.lng_masuk) ? `window.open('https://www.google.com/maps?q=${a.lat_masuk},${a.lng_masuk}', '_blank')` : `previewFoto('${BASE_FOTO}${a.foto_masuk}')`;
-            buktiFoto += `<button onclick="${aksiMasuk}" class="inline-block w-8 h-8 rounded-lg overflow-hidden border border-gray-200 hover:scale-110 transition-transform" title="Buka Lokasi Masuk">
+            let aksiMasuk = (a.lat_masuk && a.lng_masuk) ? `bukaLokasi(${a.lat_masuk}, ${a.lng_masuk}, '${BASE_FOTO}${a.foto_masuk}')` : `previewFoto('${BASE_FOTO}${a.foto_masuk}')`;
+            buktiFoto += `<button onclick="${aksiMasuk}" class="inline-block w-8 h-8 rounded-lg overflow-hidden border border-gray-200 hover:scale-110 transition-transform" title="Buka Bukti Masuk">
                 <img src="${BASE_FOTO}${a.foto_masuk}" class="w-full h-full object-cover">
             </button>`;
         }
         
         // Foto Pulang
         if (a.foto_pulang) {
-            let aksiPulang = (a.lat_pulang && a.lng_pulang) ? `window.open('https://www.google.com/maps?q=${a.lat_pulang},${a.lng_pulang}', '_blank')` : `previewFoto('${BASE_FOTO}${a.foto_pulang}')`;
-            buktiFoto += `<button onclick="${aksiPulang}" class="inline-block w-8 h-8 rounded-lg overflow-hidden border border-gray-200 hover:scale-110 transition-transform" title="Buka Lokasi Pulang">
+            let aksiPulang = (a.lat_pulang && a.lng_pulang) ? `bukaLokasi(${a.lat_pulang}, ${a.lng_pulang}, '${BASE_FOTO}${a.foto_pulang}')` : `previewFoto('${BASE_FOTO}${a.foto_pulang}')`;
+            buktiFoto += `<button onclick="${aksiPulang}" class="inline-block w-8 h-8 rounded-lg overflow-hidden border border-gray-200 hover:scale-110 transition-transform" title="Buka Bukti Pulang">
                 <img src="${BASE_FOTO}${a.foto_pulang}" class="w-full h-full object-cover">
             </button>`;
         }
@@ -313,11 +405,52 @@ async function lihatDetail(id_user, nama) {
     document.getElementById('tbody-detail').innerHTML = rows;
 }
 
+function toggleManualLoc(mode) {
+    const val = document.getElementById(`tipe_lokasi_${mode}`).value;
+    const box = document.getElementById(`input_manual_${mode}`);
+    if(val === 'manual') {
+        box.classList.remove('hidden');
+    } else {
+        box.classList.add('hidden');
+    }
+}
+
 function bukaEdit(a) {
     document.getElementById('edit-id_absensi').value = a.id_absensi;
     document.getElementById('edit-status').value = a.status;
     document.getElementById('edit-jam_masuk').value = a.jam_masuk ? a.jam_masuk.substring(0,5) : '';
     document.getElementById('edit-jam_pulang').value = a.jam_pulang ? a.jam_pulang.substring(0,5) : '';
+    
+    // Reset file inputs & dropdowns
+    document.getElementById('edit-foto_masuk').value = ''; 
+    document.getElementById('edit-foto_pulang').value = ''; 
+    document.getElementById('tipe_lokasi_masuk').value = 'keep';
+    document.getElementById('tipe_lokasi_pulang').value = 'keep';
+    toggleManualLoc('masuk');
+    toggleManualLoc('pulang');
+
+    // Populate Foto Masuk Lama
+    if (a.foto_masuk) {
+        document.getElementById('img-lama-masuk').src = `${BASE_FOTO}${a.foto_masuk}`;
+        document.getElementById('lok-lama-masuk').innerText = `${a.lat_masuk}, ${a.lng_masuk}`;
+        document.getElementById('preview-lama-masuk').classList.remove('hidden');
+        document.getElementById('preview-lama-masuk').classList.add('flex');
+    } else {
+        document.getElementById('preview-lama-masuk').classList.add('hidden');
+        document.getElementById('preview-lama-masuk').classList.remove('flex');
+    }
+
+    // Populate Foto Pulang Lama
+    if (a.foto_pulang) {
+        document.getElementById('img-lama-pulang').src = `${BASE_FOTO}${a.foto_pulang}`;
+        document.getElementById('lok-lama-pulang').innerText = `${a.lat_pulang}, ${a.lng_pulang}`;
+        document.getElementById('preview-lama-pulang').classList.remove('hidden');
+        document.getElementById('preview-lama-pulang').classList.add('flex');
+    } else {
+        document.getElementById('preview-lama-pulang').classList.add('hidden');
+        document.getElementById('preview-lama-pulang').classList.remove('flex');
+    }
+
     toggleJamFields(a.status);
     bukaModal('modal-edit');
 }

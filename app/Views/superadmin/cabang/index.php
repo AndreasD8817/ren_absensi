@@ -125,18 +125,18 @@ function renderFormCabang($prefix = '') {
         </div>
         <div>
             <label class="block text-xs font-semibold text-gray-600 mb-1">Nilai UMK Daerah (Rp) <span class="text-gray-400 font-normal">(Opsional)</span></label>
-            <input name="umk" id="<?= $prefix ?>umk" type="number" class="<?= $inputClass ?>" placeholder="Contoh: 5290000">
+            <input name="umk" id="<?= $prefix ?>umk" type="text" class="<?= $inputClass ?> currency-input" placeholder="Rp. 0">
             <p class="text-[10px] text-gray-400 mt-1">Digunakan sebagai Basis Potongan BPJS & Pensiun. Biarkan kosong untuk gunakan total gaji & tunjangan.</p>
         </div>
         <div>
             <label class="block text-xs font-semibold text-gray-600 mb-1">Zona Waktu (Timezone) *</label>
-            <select name="timezone" id="<?= $prefix ?>timezone" required class="<?= $inputClass ?>">
+            <select name="timezone" id="<?= $prefix ?>timezone" required class="<?= $inputClass ?> select-modern">
                 <option value="Asia/Jakarta">WIB — Waktu Indonesia Barat (UTC+7) — Jawa, Sumatera, Kalimantan Barat & Tengah</option>
                 <option value="Asia/Makassar">WITA — Waktu Indonesia Tengah (UTC+8) — Bali, NTB, NTT, Sulawesi, Kalimantan Timur</option>
                 <option value="Asia/Jayapura">WIT — Waktu Indonesia Timur (UTC+9) — Papua, Maluku</option>
             </select>
         </div>
-        <div class="grid grid-cols-3 gap-4">
+        <div class="grid grid-cols-3 gap-4 items-end">
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Latitude *</label>
                 <input name="latitude" id="<?= $prefix ?>latitude" required class="<?= $inputClass ?>" placeholder="-7.2875">
@@ -151,21 +151,63 @@ function renderFormCabang($prefix = '') {
             </div>
         </div>
         <p class="text-xs font-bold text-gray-500 uppercase tracking-wider pt-2 border-t">Nominal Denda Keterlambatan & Kehadiran (Rp)</p>
-        <div class="grid grid-cols-3 gap-3">
-            <div><label class="block text-xs text-gray-500 mb-1">1-5 menit</label><input name="denda_1_5" id="<?= $prefix ?>denda_1_5" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
-            <div><label class="block text-xs text-gray-500 mb-1">6-10 menit</label><input name="denda_6_10" id="<?= $prefix ?>denda_6_10" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
-            <div><label class="block text-xs text-gray-500 mb-1">11-15 menit</label><input name="denda_11_15" id="<?= $prefix ?>denda_11_15" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
-            <div><label class="block text-xs text-gray-500 mb-1">16-30 menit</label><input name="denda_16_30" id="<?= $prefix ?>denda_16_30" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
-            <div><label class="block text-xs text-gray-500 mb-1">31-60 menit</label><input name="denda_31_60" id="<?= $prefix ?>denda_31_60" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
-            <div><label class="block text-xs text-red-500 mb-1">Alfa (Rp)</label><input name="denda_alfa" id="<?= $prefix ?>denda_alfa" type="number" class="<?= $inputClass ?>" placeholder="50000"></div>
-            <div class="col-span-3"><label class="block text-xs text-orange-500 mb-1">Tidak Absen Pulang (Rp)</label><input name="denda_tidak_absen_pulang" id="<?= $prefix ?>denda_tidak_absen_pulang" type="number" class="<?= $inputClass ?>" placeholder="0"></div>
+        <div class="grid grid-cols-3 gap-3 items-end">
+            <div><label class="block text-xs text-gray-500 mb-1">1-5 menit</label><input name="denda_1_5" id="<?= $prefix ?>denda_1_5" type="text" class="<?= $inputClass ?> currency-input" placeholder="Rp. 0"></div>
+            <div><label class="block text-xs text-gray-500 mb-1">6-10 menit</label><input name="denda_6_10" id="<?= $prefix ?>denda_6_10" type="text" class="<?= $inputClass ?> currency-input" placeholder="Rp. 0"></div>
+            <div><label class="block text-xs text-gray-500 mb-1">11-15 menit</label><input name="denda_11_15" id="<?= $prefix ?>denda_11_15" type="text" class="<?= $inputClass ?> currency-input" placeholder="Rp. 0"></div>
+            <div><label class="block text-xs text-gray-500 mb-1">16-30 menit</label><input name="denda_16_30" id="<?= $prefix ?>denda_16_30" type="text" class="<?= $inputClass ?> currency-input" placeholder="Rp. 0"></div>
+            <div><label class="block text-xs text-gray-500 mb-1">31-60 menit</label><input name="denda_31_60" id="<?= $prefix ?>denda_31_60" type="text" class="<?= $inputClass ?> currency-input" placeholder="Rp. 0"></div>
+            <div><label class="block text-xs text-red-500 mb-1">Alfa (Rp)</label><input name="denda_alfa" id="<?= $prefix ?>denda_alfa" type="text" class="<?= $inputClass ?> currency-input" placeholder="Rp. 0"></div>
+            <div class="col-span-3"><label class="block text-xs text-orange-500 mb-1">Tidak Absen Pulang (Rp)</label><input name="denda_tidak_absen_pulang" id="<?= $prefix ?>denda_tidak_absen_pulang" type="text" class="<?= $inputClass ?> currency-input" placeholder="Rp. 0"></div>
         </div>
     </div>
     <?php return ob_get_clean();
 }
 ?>
 
+<style>
+.select-modern {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.2em 1.2em;
+    padding-right: 2.5rem !important;
+}
+</style>
 <script>
+    // ================== CURRENCY FORMATTER ==================
+    function formatRupiah(value) {
+        if (value === null || value === undefined || value === '') return '';
+        let number_string = value.toString().replace(/[^,\d]/g, ''),
+            split   = number_string.split(','),
+            sisa    = split[0].length % 3,
+            rupiah  = split[0].substr(0, sisa),
+            ribuan  = split[0].substr(sisa).match(/\d{3}/gi);
+            
+        if (ribuan) {
+            let separator = sisa ? '.' : '';
+            rupiah += separator + ribuan.join('.');
+        }
+        return rupiah ? 'Rp. ' + rupiah : '';
+    }
+
+    function cleanRupiah(str) {
+        return str.toString().replace(/[^0-9]/g, '');
+    }
+
+    document.querySelectorAll('.currency-input').forEach(input => {
+        if(input.value && input.value !== '0' && !input.value.startsWith('Rp')) {
+            input.value = formatRupiah(input.value);
+        }
+        input.addEventListener('keyup', function(e) {
+            this.value = formatRupiah(this.value);
+        });
+    });
+    // ========================================================
+
     function bukaModalTambah() {
         document.getElementById('form-tambah').reset();
         document.getElementById('modal-tambah').classList.remove('hidden');
@@ -174,18 +216,20 @@ function renderFormCabang($prefix = '') {
     function bukaModalEdit(d) {
         document.getElementById('edit-id_cabang').value    = d.id_cabang;
         document.getElementById('edit-nama_cabang').value  = d.nama_cabang;
-        document.getElementById('edit-umk').value          = d.umk || '';
+        document.getElementById('edit-umk').value          = d.umk ? formatRupiah(parseInt(d.umk, 10)) : '';
         document.getElementById('edit-timezone').value     = d.timezone || 'Asia/Jakarta';
         document.getElementById('edit-latitude').value     = d.latitude;
         document.getElementById('edit-longitude').value    = d.longitude;
         document.getElementById('edit-radius_meter').value = d.radius_meter;
-        document.getElementById('edit-denda_1_5').value    = d.denda_1_5;
-        document.getElementById('edit-denda_6_10').value   = d.denda_6_10;
-        document.getElementById('edit-denda_11_15').value  = d.denda_11_15;
-        document.getElementById('edit-denda_16_30').value  = d.denda_16_30;
-        document.getElementById('edit-denda_31_60').value  = d.denda_31_60;
-        document.getElementById('edit-denda_alfa').value   = d.denda_alfa;
-        document.getElementById('edit-denda_tidak_absen_pulang').value = d.denda_tidak_absen_pulang;
+        
+        document.getElementById('edit-denda_1_5').value    = d.denda_1_5 ? formatRupiah(parseInt(d.denda_1_5, 10)) : '';
+        document.getElementById('edit-denda_6_10').value   = d.denda_6_10 ? formatRupiah(parseInt(d.denda_6_10, 10)) : '';
+        document.getElementById('edit-denda_11_15').value  = d.denda_11_15 ? formatRupiah(parseInt(d.denda_11_15, 10)) : '';
+        document.getElementById('edit-denda_16_30').value  = d.denda_16_30 ? formatRupiah(parseInt(d.denda_16_30, 10)) : '';
+        document.getElementById('edit-denda_31_60').value  = d.denda_31_60 ? formatRupiah(parseInt(d.denda_31_60, 10)) : '';
+        document.getElementById('edit-denda_alfa').value   = d.denda_alfa ? formatRupiah(parseInt(d.denda_alfa, 10)) : '';
+        document.getElementById('edit-denda_tidak_absen_pulang').value = d.denda_tidak_absen_pulang ? formatRupiah(parseInt(d.denda_tidak_absen_pulang, 10)) : '';
+        
         document.getElementById('modal-edit').classList.remove('hidden');
         document.getElementById('modal-edit').classList.add('flex');
     }
@@ -195,14 +239,25 @@ function renderFormCabang($prefix = '') {
     }
     async function submitTambah(e) {
         e.preventDefault();
-        const resp = await fetch('<?= BASE_URL ?>/superadmin/simpan_cabang', { method: 'POST', body: new FormData(document.getElementById('form-tambah')) });
+        const form = document.getElementById('form-tambah');
+        form.querySelectorAll('.currency-input').forEach(input => { input.dataset.raw = input.value; input.value = cleanRupiah(input.value); });
+        
+        const resp = await fetch('<?= BASE_URL ?>/superadmin/simpan_cabang', { method: 'POST', body: new FormData(form) });
+        
+        form.querySelectorAll('.currency-input').forEach(input => { input.value = input.dataset.raw; });
         const data = await resp.json();
         if (data.status === 'success') Swal.fire('Berhasil!', data.message, 'success').then(() => location.reload());
         else Swal.fire('Gagal', data.message, 'error');
     }
+    
     async function submitEdit(e) {
         e.preventDefault();
-        const resp = await fetch('<?= BASE_URL ?>/superadmin/update_cabang', { method: 'POST', body: new FormData(document.getElementById('form-edit')) });
+        const form = document.getElementById('form-edit');
+        form.querySelectorAll('.currency-input').forEach(input => { input.dataset.raw = input.value; input.value = cleanRupiah(input.value); });
+        
+        const resp = await fetch('<?= BASE_URL ?>/superadmin/update_cabang', { method: 'POST', body: new FormData(form) });
+        
+        form.querySelectorAll('.currency-input').forEach(input => { input.value = input.dataset.raw; });
         const data = await resp.json();
         if (data.status === 'success') Swal.fire('Berhasil!', data.message, 'success').then(() => location.reload());
         else Swal.fire('Gagal', data.message, 'error');

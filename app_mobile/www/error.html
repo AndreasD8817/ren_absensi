@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Koneksi Terputus - PT REN</title>
+    <!-- Kita pakai CSS bawaan (Internal) agar tetap bisa dimuat meskipun tanpa internet -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+        .error-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 85%;
+            max-width: 400px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .icon-container {
+            width: 80px;
+            height: 80px;
+            background: #fff0f0;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 20px;
+            color: #e74c3c;
+        }
+        .icon-container svg {
+            width: 40px;
+            height: 40px;
+        }
+        h2 {
+            margin: 0 0 10px;
+            font-size: 22px;
+            color: #1a1a1a;
+        }
+        p {
+            margin: 0 0 25px;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        .btn-retry {
+            background: #A3195A;
+            color: white;
+            border: none;
+            padding: 14px 0;
+            width: 100%;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(163, 25, 90, 0.3);
+            transition: transform 0.2s;
+        }
+        .btn-retry:active {
+            transform: scale(0.95);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="error-card">
+        <div class="icon-container">
+            <!-- Icon WiFi Silang -->
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"></path>
+                <line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+            </svg>
+        </div>
+        <h2>Koneksi Terputus</h2>
+        <p>Aplikasi gagal terhubung ke Server PT REN. Pastikan internet Anda stabil atau hubungi Administrator.</p>
+        <button class="btn-retry" onclick="window.location.href = 'http://192.168.1.9/ren_absensi/public'">Coba Lagi</button>
+    </div>
+
+</body>
+</html>

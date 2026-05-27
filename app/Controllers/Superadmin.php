@@ -89,6 +89,20 @@ class Superadmin extends Controller {
         exit;
     }
 
+    public function download_template_libur() {
+        $filename = "Template_Import_Libur.csv";
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        $output = fopen('php://output', 'w');
+        // Header CSV
+        fputcsv($output, ['Tanggal', 'Keterangan']);
+        // Contoh Data
+        fputcsv($output, ['2026-08-17', 'Hari Kemerdekaan RI']);
+        fputcsv($output, ['2026-12-25', 'Hari Raya Natal']);
+        fclose($output);
+        exit;
+    }
+
     public function import_pegawai_csv() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
         if (!isset($_FILES['file_csv']) || $_FILES['file_csv']['error'] !== UPLOAD_ERR_OK) {
@@ -133,28 +147,28 @@ class Superadmin extends Controller {
             $t_hadir = (int)str_replace(['.', ','], '', trim($data[12]));
             $t_lainnya = (int)str_replace(['.', ','], '', trim($data[13]));
 
-            if (empty($nip) || empty($username) || empty($password)) {
-                $errorRows[] = "Baris $rowNum: NIP, Username, dan Password wajib diisi.";
+            if (empty($nip) || empty($password)) {
+                $errorRows[] = "Baris $rowNum: NIP dan Password wajib diisi.";
                 $rowNum++; continue;
             }
 
-            // Validasi NIP & Username
-            $stmt = $db->prepare("SELECT id_user FROM users WHERE nip = :nip OR username = :username");
-            $stmt->execute([':nip' => $nip, ':username' => $username]);
+            // Validasi NIP
+            $stmt = $db->prepare("SELECT id_user FROM users WHERE nip = :nip");
+            $stmt->execute([':nip' => $nip]);
             if ($stmt->fetch()) {
-                $errorRows[] = "Baris $rowNum: NIP atau Username ($username) sudah terdaftar.";
+                $errorRows[] = "Baris $rowNum: NIP ($nip) sudah terdaftar.";
                 $rowNum++; continue;
             }
 
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
             $stmt_in = $db->prepare("
-                INSERT INTO users (nip, nama_lengkap, username, password, role, id_cabang, jabatan, gaji_pokok, tipe_lembur, tunj_jabatan, tunj_transportasi, tunj_makan, tunj_kehadiran, tunj_lainnya, is_active)
-                VALUES (:nip, :nama, :uname, :pass, :role, :id_cabang, :jabatan, :gaji, :tipe, :tj, :tt, :tm, :th, :tl, 1)
+                INSERT INTO users (nip, nama_lengkap, password, role, id_cabang, jabatan, gaji_pokok, tipe_lembur, tunj_jabatan, tunj_transportasi, tunj_makan, tunj_kehadiran, tunj_lainnya, is_active)
+                VALUES (:nip, :nama, :pass, :role, :id_cabang, :jabatan, :gaji, :tipe, :tj, :tt, :tm, :th, :tl, 1)
             ");
             
             try {
                 $stmt_in->execute([
-                    ':nip' => $nip, ':nama' => $nama, ':uname' => $username, ':pass' => $hashed_password,
+                    ':nip' => $nip, ':nama' => $nama, ':pass' => $hashed_password,
                     ':role' => $role, ':id_cabang' => $id_cabang, ':jabatan' => $jabatan, ':gaji' => $gaji, ':tipe' => $tipe_lembur,
                     ':tj' => $t_jabatan, ':tt' => $t_transport, ':tm' => $t_makan, ':th' => $t_hadir, ':tl' => $t_lainnya
                 ]);
@@ -278,12 +292,98 @@ class Superadmin extends Controller {
         }
     }
 
+    private function upload_dan_kompres($file, $nip, $mode, $tanggal) {
+        $year = date('Y', strtotime($tanggal));
+        $month = date('m', strtotime($tanggal));
+        $date_str = date('Ymd', strtotime($tanggal));
+        
+        $dir_uploads = PUBLIC_PATH . "/uploads/$year/$month/";
+        if (!is_dir($dir_uploads)) mkdir($dir_uploads, 0777, true);
+        
+        $filename = "{$nip}_{$mode}_{$date_str}_" . time() . ".jpg";
+        $destination = $dir_uploads . $filename;
+        
+        $info = getimagesize($file['tmp_name']);
+        if (!$info) return null;
+        
+        if ($info['mime'] == 'image/jpeg') $image = imagecreatefromjpeg($file['tmp_name']);
+        elseif ($info['mime'] == 'image/png') $image = imagecreatefrompng($file['tmp_name']);
+        else return null; 
+        
+        $max_width = 600;
+        $width = imagesx($image);
+        $height = imagesy($image);
+        if ($width > $max_width) {
+            $new_width = $max_width;
+            $new_height = floor($height * ($max_width / $width));
+            $tmp_img = imagecreatetruecolor($new_width, $new_height);
+            imagecopyresampled($tmp_img, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
+            $image = $tmp_img;
+        }
+        
+        imagejpeg($image, $destination, 60);
+        imagedestroy($image);
+        
+        return "$year/$month/$filename";
+    }
+
     public function edit_absensi() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
+        
+        $id_absensi = $_POST['id_absensi'];
         $absensiModel = $this->model('Absensi');
+        
+        // Ambil data referensi (Tanggal, NIP, Cabang)
+        $db = (new Database())->getConnection();
+        $stmt = $db->prepare("SELECT a.tanggal, u.nip, u.id_cabang FROM absensi a JOIN users u ON a.id_user = u.id_user WHERE a.id_absensi = :id");
+        $stmt->bindParam(':id', $id_absensi);
+        $stmt->execute();
+        $info = $stmt->fetch();
+        
+        if (!$info) {
+            $this->jsonError('Data absensi tidak ditemukan.'); return;
+        }
+        
+        $tanggal = $info['tanggal'];
+        $nip = $info['nip'] ? $info['nip'] : 'MANUAL';
+        $id_cabang = $info['id_cabang'];
+        
+        // Proses Upload Foto (Sesuai Konvensi Nama App Mobile)
+        if (isset($_FILES['foto_masuk']) && $_FILES['foto_masuk']['error'] === UPLOAD_ERR_OK) {
+            $f_masuk = $this->upload_dan_kompres($_FILES['foto_masuk'], $nip, 'masuk', $tanggal);
+            if ($f_masuk) $_POST['foto_masuk_baru'] = $f_masuk;
+        }
+        if (isset($_FILES['foto_pulang']) && $_FILES['foto_pulang']['error'] === UPLOAD_ERR_OK) {
+            $f_pulang = $this->upload_dan_kompres($_FILES['foto_pulang'], $nip, 'pulang', $tanggal);
+            if ($f_pulang) $_POST['foto_pulang_baru'] = $f_pulang;
+        }
+
+        // Proses Pemetaan Lokasi (Manual vs Otomatis)
+        if (isset($_POST['tipe_lokasi_masuk'])) {
+            if ($_POST['tipe_lokasi_masuk'] === 'otomatis') {
+                $cabang = $absensiModel->getInfoCabang($id_cabang);
+                $_POST['lat_masuk_baru'] = $cabang['latitude'];
+                $_POST['lng_masuk_baru'] = $cabang['longitude'];
+            } elseif ($_POST['tipe_lokasi_masuk'] === 'manual') {
+                $_POST['lat_masuk_baru'] = $_POST['lat_masuk'];
+                $_POST['lng_masuk_baru'] = $_POST['lng_masuk'];
+            }
+        }
+        
+        if (isset($_POST['tipe_lokasi_pulang'])) {
+            if ($_POST['tipe_lokasi_pulang'] === 'otomatis') {
+                $cabang = $absensiModel->getInfoCabang($id_cabang);
+                $_POST['lat_pulang_baru'] = $cabang['latitude'];
+                $_POST['lng_pulang_baru'] = $cabang['longitude'];
+            } elseif ($_POST['tipe_lokasi_pulang'] === 'manual') {
+                $_POST['lat_pulang_baru'] = $_POST['lat_pulang'];
+                $_POST['lng_pulang_baru'] = $_POST['lng_pulang'];
+            }
+        }
+
         $result = $absensiModel->editAbsensi($_POST);
         if ($result) {
-            catat_log('UPDATE', 'Absensi', 'Memodifikasi absensi ID: ' . $_POST['id_absensi'] . ' menjadi status: ' . $_POST['status']);
+            catat_log('UPDATE', 'Absensi', "Memodifikasi absensi ID: $id_absensi menjadi status: " . $_POST['status']);
         }
         echo json_encode(['status' => $result ? 'success' : 'error', 'message' => $result ? 'Data absensi berhasil diperbarui.' : 'Gagal memperbarui data.']);
     }
@@ -758,6 +858,64 @@ class Superadmin extends Controller {
     }
 
     // ==================== PENGATURAN & BACKUP ====================
+    public function toggle_maintenance() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
+        $status = $_POST['status'] === '1';
+        $file = APP_PATH . '/Config/maintenance.json';
+        file_put_contents($file, json_encode(['is_maintenance' => $status]));
+        catat_log('SISTEM', 'Pengaturan', 'Mengubah status Mode Pemeliharaan menjadi: ' . ($status ? 'AKTIF' : 'MATI'));
+        echo json_encode(['status' => 'success']);
+    }
+
+    public function hitung_kapasitas() {
+        $dir = PUBLIC_PATH . '/uploads';
+        $size = 0;
+        if (is_dir($dir)) {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir));
+            foreach ($iterator as $file) {
+                if ($file->isFile()) $size += $file->getSize();
+            }
+        }
+        $terpakai_mb = round($size / 1048576, 2);
+        $kuota_mb = 4096; // Asumsi batas maksimal khusus foto adalah 4096 MB (4 GB)
+        $persentase = min(100, round(($terpakai_mb / $kuota_mb) * 100, 1));
+        
+        echo json_encode([
+            'status' => 'success',
+            'terpakai_mb' => $terpakai_mb,
+            'kuota_mb' => $kuota_mb,
+            'persentase' => $persentase
+        ]);
+    }
+
+    public function hapus_foto_berkala() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->jsonError('Metode tidak valid.'); return; }
+        $bulan_input = $_POST['bulan']; // format YYYY-MM
+        if (empty($bulan_input)) { $this->jsonError('Bulan belum dipilih.'); return; }
+        
+        if ($bulan_input === date('Y-m')) {
+            $this->jsonError('Anda tidak bisa menghapus foto untuk bulan yang sedang berjalan!');
+            return;
+        }
+
+        list($tahun, $bulan) = explode('-', $bulan_input);
+        $dir = PUBLIC_PATH . "/uploads/$tahun/$bulan";
+        
+        $count = 0;
+        if (is_dir($dir)) {
+            $files = glob("$dir/*.jpg");
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                    $count++;
+                }
+            }
+        }
+        
+        catat_log('DELETE', 'Penyimpanan', "Menghapus $count foto absensi pada bulan $bulan_input");
+        echo json_encode(['status' => 'success', 'message' => "$count foto berhasil dihapus permanen dari server."]);
+    }
+
     public function backup_data() {
         $data['judul'] = 'Backup & Pencadangan | PT REN';
         $this->view('layouts/header', $data);

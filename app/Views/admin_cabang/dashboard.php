@@ -178,4 +178,22 @@
             }
         }
     });
+
+    // Deteksi Layar HP (Mobile Warning)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cek jika layar kurang dari 768px (Mobile) dan belum pernah diberi peringatan di sesi ini
+        if (window.innerWidth < 768 && !sessionStorage.getItem('mobile_warned')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Peringatan Resolusi',
+                html: 'Aplikasi ini dibangun dengan tabel data dan analitik yang kompleks.<br><br><b>Sangat disarankan menggunakan Desktop PC atau Tablet</b> agar tampilan tidak berantakan.',
+                confirmButtonText: '<i class="fa-solid fa-thumbs-up"></i> Saya Mengerti',
+                confirmButtonColor: '#A3195A',
+                allowOutsideClick: false,
+                backdrop: `rgba(0,0,0,0.8)`
+            }).then(() => {
+                sessionStorage.setItem('mobile_warned', 'true');
+            });
+        }
+    });
 </script>

@@ -6,9 +6,10 @@
     "url": "http://192.168.1.10/ren_absensi/public",
     "cleartext": true,
     "allowNavigation": [
-      "192.168.1.10",
+      "192.168.1.9",
       "*"
-    ]
+    ],
+    "errorPath": "error.html"
   },
   "appendUserAgent": "PTREN_SECURE_APP_V1"
 }

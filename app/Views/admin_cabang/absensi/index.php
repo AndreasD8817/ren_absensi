@@ -3,6 +3,9 @@ $nama_bulan = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agus
 $base_foto = BASE_URL . '/uploads/';
 ?>
 <!-- Halaman Absensi - Admin Cabang -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <div class="flex h-screen overflow-hidden bg-gray-50">
 
     <?php include_once APP_PATH . '/Views/admin_cabang/_sidebar.php'; ?>
@@ -151,8 +154,25 @@ $base_foto = BASE_URL . '/uploads/';
 
 
 <!-- Modal Foto Preview -->
-<div id="modal-foto" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80" onclick="tutupModal('modal-foto')">
+<div id="modal-foto" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80" onclick="if(event.target===this) tutupModal('modal-foto')">
     <img id="foto-preview" src="" class="max-h-[80vh] max-w-[90vw] rounded-2xl shadow-2xl object-contain">
+</div>
+
+<!-- Modal Lokasi & Foto (Leaflet) -->
+<div id="modal-lokasi" class="fixed inset-0 z-[70] hidden items-center justify-center bg-black/80 backdrop-blur-sm" onclick="if(event.target===this) tutupModal('modal-lokasi')">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden flex flex-col">
+        <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="font-bold text-gray-800 text-sm"><i class="fa-solid fa-map-location-dot text-blue-500 mr-2"></i>Bukti & Lokasi Absen</h3>
+            <button onclick="tutupModal('modal-lokasi')" class="text-gray-400 hover:text-red-500 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <div class="p-5 flex flex-col gap-4">
+            <img id="lokasi-foto" src="" class="w-full h-56 object-cover rounded-2xl border border-gray-200 shadow-inner bg-gray-100">
+            <div id="lokasi-map" class="w-full h-56 rounded-2xl border border-gray-200 shadow-inner z-0 relative"></div>
+            <a id="btn-gmaps" href="#" target="_blank" class="w-full py-3 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold text-sm rounded-xl text-center transition-colors shadow-sm">
+                <i class="fa-solid fa-location-arrow mr-1"></i> Buka Titik Ini di Google Maps
+            </a>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -183,6 +203,30 @@ function tutupModal(id) {
     m.classList.add('hidden');
 }
 
+let leafletMap = null;
+let leafletMarker = null;
+
+function bukaLokasi(lat, lng, urlFoto) {
+    document.getElementById('lokasi-foto').src = urlFoto;
+    document.getElementById('btn-gmaps').href = `https://www.google.com/maps?q=${lat},${lng}`;
+    
+    bukaModal('modal-lokasi');
+    
+    setTimeout(() => {
+        if (!leafletMap) {
+            leafletMap = L.map('lokasi-map').setView([lat, lng], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(leafletMap);
+            leafletMarker = L.marker([lat, lng]).addTo(leafletMap);
+        } else {
+            leafletMap.invalidateSize();
+            leafletMap.setView([lat, lng], 16);
+            leafletMarker.setLatLng([lat, lng]);
+        }
+    }, 300);
+}
+
 async function lihatDetail(id_user, nama) {
     currentUserId = id_user;
     document.getElementById('modal-detail-nama').textContent = 'Detail: ' + nama;
@@ -206,16 +250,16 @@ async function lihatDetail(id_user, nama) {
         
         // Foto Masuk
         if (a.foto_masuk) {
-            let aksiMasuk = (a.lat_masuk && a.lng_masuk) ? `window.open('https://www.google.com/maps?q=${a.lat_masuk},${a.lng_masuk}', '_blank')` : `previewFoto('${BASE_FOTO}${a.foto_masuk}')`;
-            buktiFoto += `<button onclick="${aksiMasuk}" class="inline-block w-8 h-8 rounded-lg overflow-hidden border border-gray-200 hover:scale-110 transition-transform" title="Buka Lokasi Masuk">
+            let aksiMasuk = (a.lat_masuk && a.lng_masuk) ? `bukaLokasi(${a.lat_masuk}, ${a.lng_masuk}, '${BASE_FOTO}${a.foto_masuk}')` : `previewFoto('${BASE_FOTO}${a.foto_masuk}')`;
+            buktiFoto += `<button onclick="${aksiMasuk}" class="inline-block w-8 h-8 rounded-lg overflow-hidden border border-gray-200 hover:scale-110 transition-transform" title="Buka Bukti Masuk">
                 <img src="${BASE_FOTO}${a.foto_masuk}" class="w-full h-full object-cover">
             </button>`;
         }
         
         // Foto Pulang
         if (a.foto_pulang) {
-            let aksiPulang = (a.lat_pulang && a.lng_pulang) ? `window.open('https://www.google.com/maps?q=${a.lat_pulang},${a.lng_pulang}', '_blank')` : `previewFoto('${BASE_FOTO}${a.foto_pulang}')`;
-            buktiFoto += `<button onclick="${aksiPulang}" class="inline-block w-8 h-8 rounded-lg overflow-hidden border border-gray-200 hover:scale-110 transition-transform" title="Buka Lokasi Pulang">
+            let aksiPulang = (a.lat_pulang && a.lng_pulang) ? `bukaLokasi(${a.lat_pulang}, ${a.lng_pulang}, '${BASE_FOTO}${a.foto_pulang}')` : `previewFoto('${BASE_FOTO}${a.foto_pulang}')`;
+            buktiFoto += `<button onclick="${aksiPulang}" class="inline-block w-8 h-8 rounded-lg overflow-hidden border border-gray-200 hover:scale-110 transition-transform" title="Buka Bukti Pulang">
                 <img src="${BASE_FOTO}${a.foto_pulang}" class="w-full h-full object-cover">
             </button>`;
         }

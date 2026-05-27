@@ -3,6 +3,18 @@
 $semua_cabang = $cabang ?? [];
 $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 ?>
+<style>
+.select-modern {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.2em 1.2em;
+    padding-right: 2.5rem !important;
+}
+</style>
 <!-- Halaman Kelola Pegawai - Superadmin -->
 <div class="flex h-screen overflow-hidden bg-gray-50">
 
@@ -31,7 +43,7 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
             <div class="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <p class="font-semibold text-gray-700">Total: <span class="text-primary font-bold" id="totalRecords"><?= count($pegawai) ?> Pegawai</span></p>
                 <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <select id="filterCabang" onchange="filterAndPaginate()" class="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none">
+                    <select id="filterCabang" onchange="filterAndPaginate()" class="select-modern px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary outline-none">
                         <option value="">Semua Cabang</option>
                         <?php foreach($semua_cabang as $c): ?>
                         <option value="<?= esc($c['nama_cabang']) ?>"><?= esc($c['nama_cabang']) ?></option>
@@ -104,7 +116,7 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
             <div class="px-6 py-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm" id="paginationControls">
                 <div class="flex items-center gap-2">
                     <span class="text-gray-500 font-medium">Tampilkan</span>
-                    <select id="perPage" onchange="filterAndPaginate()" class="px-2 py-1 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-primary">
+                    <select id="perPage" onchange="filterAndPaginate()" class="select-modern px-2 py-1 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-primary">
                         <option value="5">5</option>
                         <option value="10" selected>10</option>
                         <option value="20">20</option>
@@ -168,45 +180,45 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
         </div>
         <form id="form-tambah" onsubmit="submitTambah(event)" class="p-6 space-y-4">
     <?= csrf_field() ?>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4 items-end">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">NIP *</label>
                     <input name="nip" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Masukkan NIP">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Password *</label>
-                    <input name="password" type="password" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Min. 8 karakter">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Password * <span class="text-gray-400 font-normal">(min. 8 karakter)</span></label>
+                    <input name="password" type="password" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="••••••••">
                 </div>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Lengkap *</label>
                 <input name="nama_lengkap" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Nama sesuai KTP">
             </div>
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-3 gap-4 items-end">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Jabatan</label>
                     <input name="jabatan" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: Staff IT">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Tipe Pekerjaan *</label>
-                    <select name="tipe_lembur" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+                    <select name="tipe_lembur" required class="select-modern w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                         <option value="Non-Project">Non-Project (Kantor)</option>
                         <option value="Project">Project (Lapangan)</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Role *</label>
-                    <select name="role" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+                    <select name="role" required class="select-modern w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                         <option value="pegawai">Pegawai</option>
                         <option value="admin_cabang">Admin Cabang</option>
                         <option value="superadmin">Superadmin</option>
                     </select>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4 items-end">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Cabang *</label>
-                    <select name="id_cabang" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+                    <select name="id_cabang" required class="select-modern w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                         <?php foreach ($semua_cabang as $c): ?>
                         <option value="<?= $c['id_cabang'] ?>"><?= esc($c['nama_cabang']) ?></option>
                         <?php endforeach; ?>
@@ -214,45 +226,45 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Gaji Pokok (Rp) *</label>
-                    <input name="gaji_pokok" type="number" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Contoh: 3500000">
+                    <input name="gaji_pokok" type="text" required class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                 </div>
             </div>
             
             <div class="border-t border-gray-200 pt-4 mt-2">
                 <h4 class="text-sm font-bold text-gray-700 mb-3">Tunjangan & Pajak</h4>
-                <div class="grid grid-cols-4 gap-4 mb-4">
+                <div class="grid grid-cols-4 gap-4 mb-4 items-end">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Status Pajak *</label>
-                        <select name="status_pajak" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+                        <select name="status_pajak" required class="select-modern w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                             <option value="TK/0">TK/0</option><option value="TK/1">TK/1</option><option value="TK/2">TK/2</option><option value="TK/3">TK/3</option>
                             <option value="K/0">K/0</option><option value="K/1">K/1</option><option value="K/2">K/2</option><option value="K/3">K/3</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1" title="Pajak yang sudah dibayar tahun ini">Saldo PPh 21</label>
-                        <input name="saldo_awal_pph21" type="number" value="0" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="saldo_awal_pph21" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Jabatan</label>
-                        <input name="tunj_jabatan" type="number" value="0" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="tunj_jabatan" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Transport</label>
-                        <input name="tunj_transportasi" type="number" value="0" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="tunj_transportasi" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                 </div>
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-3 gap-4 items-end">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Makan</label>
-                        <input name="tunj_makan" type="number" value="0" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="tunj_makan" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Kehadiran</label>
-                        <input name="tunj_kehadiran" type="number" value="0" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="tunj_kehadiran" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Lainnya</label>
-                        <input name="tunj_lainnya" type="number" value="0" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="tunj_lainnya" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                 </div>
             </div>
@@ -274,7 +286,7 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
         <form id="form-edit" onsubmit="submitEdit(event)" class="p-6 space-y-4">
     <?= csrf_field() ?>
             <input type="hidden" name="id_user" id="edit-id_user">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4 items-end">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">NIP *</label>
                     <input name="nip" id="edit-nip" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
@@ -288,31 +300,31 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Lengkap *</label>
                 <input name="nama_lengkap" id="edit-nama" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
             </div>
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-3 gap-4 items-end">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Jabatan</label>
                     <input name="jabatan" id="edit-jabatan" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Tipe Pekerjaan *</label>
-                    <select name="tipe_lembur" id="edit-tipe_lembur" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+                    <select name="tipe_lembur" id="edit-tipe_lembur" required class="select-modern w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                         <option value="Non-Project">Non-Project (Kantor)</option>
                         <option value="Project">Project (Lapangan)</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Role *</label>
-                    <select name="role" id="edit-role" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+                    <select name="role" id="edit-role" required class="select-modern w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                         <option value="pegawai">Pegawai</option>
                         <option value="admin_cabang">Admin Cabang</option>
                         <option value="superadmin">Superadmin</option>
                     </select>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4 items-end">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Cabang *</label>
-                    <select name="id_cabang" id="edit-id_cabang" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+                    <select name="id_cabang" id="edit-id_cabang" required class="select-modern w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                         <?php foreach ($semua_cabang as $c): ?>
                         <option value="<?= $c['id_cabang'] ?>"><?= esc($c['nama_cabang']) ?></option>
                         <?php endforeach; ?>
@@ -320,45 +332,45 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Gaji Pokok (Rp) *</label>
-                    <input name="gaji_pokok" id="edit-gaji" type="number" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                    <input name="gaji_pokok" id="edit-gaji" type="text" required class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                 </div>
             </div>
             
             <div class="border-t border-gray-200 pt-4 mt-2">
                 <h4 class="text-sm font-bold text-gray-700 mb-3">Tunjangan & Pajak</h4>
-                <div class="grid grid-cols-4 gap-4 mb-4">
+                <div class="grid grid-cols-4 gap-4 mb-4 items-end">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Status Pajak *</label>
-                        <select name="status_pajak" id="edit-status_pajak" required class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
+                        <select name="status_pajak" id="edit-status_pajak" required class="select-modern w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none bg-white">
                             <option value="TK/0">TK/0</option><option value="TK/1">TK/1</option><option value="TK/2">TK/2</option><option value="TK/3">TK/3</option>
                             <option value="K/0">K/0</option><option value="K/1">K/1</option><option value="K/2">K/2</option><option value="K/3">K/3</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1" title="Pajak yang sudah dibayar tahun ini">Saldo PPh 21</label>
-                        <input name="saldo_awal_pph21" id="edit-saldo_awal_pph21" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="saldo_awal_pph21" id="edit-saldo_awal_pph21" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Jabatan</label>
-                        <input name="tunj_jabatan" id="edit-tunj_jabatan" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="tunj_jabatan" id="edit-tunj_jabatan" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Transport</label>
-                        <input name="tunj_transportasi" id="edit-tunj_transportasi" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="tunj_transportasi" id="edit-tunj_transportasi" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                 </div>
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-3 gap-4 items-end">
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Makan</label>
-                        <input name="tunj_makan" id="edit-tunj_makan" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="tunj_makan" id="edit-tunj_makan" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Kehadiran</label>
-                        <input name="tunj_kehadiran" id="edit-tunj_kehadiran" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="tunj_kehadiran" id="edit-tunj_kehadiran" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-gray-600 mb-1">Tunj. Lainnya</label>
-                        <input name="tunj_lainnya" id="edit-tunj_lainnya" type="number" class="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none">
+                        <input name="tunj_lainnya" id="edit-tunj_lainnya" type="text" class="currency-input w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="Rp. 0">
                     </div>
                 </div>
             </div>
@@ -374,6 +386,38 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
     let rows = Array.from(document.querySelectorAll('#tbody-pegawai tr')).filter(r => !r.classList.contains('no-data-row'));
     let currentPage = 1;
     let filteredRows = [...rows];
+
+    // ================== CURRENCY FORMATTER ==================
+    function formatRupiah(value) {
+        if (value === null || value === undefined || value === '') return '';
+        let number_string = value.toString().replace(/[^,\d]/g, ''),
+            split   = number_string.split(','),
+            sisa    = split[0].length % 3,
+            rupiah  = split[0].substr(0, sisa),
+            ribuan  = split[0].substr(sisa).match(/\d{3}/gi);
+            
+        if (ribuan) {
+            let separator = sisa ? '.' : '';
+            rupiah += separator + ribuan.join('.');
+        }
+        return rupiah ? 'Rp. ' + rupiah : '';
+    }
+
+    function cleanRupiah(str) {
+        return str.replace(/[^0-9]/g, '');
+    }
+
+    document.querySelectorAll('.currency-input').forEach(input => {
+        // Format saat halaman dimuat
+        if(input.value && input.value !== '0' && !input.value.startsWith('Rp')) {
+            input.value = formatRupiah(input.value);
+        }
+        // Format saat mengetik
+        input.addEventListener('keyup', function(e) {
+            this.value = formatRupiah(this.value);
+        });
+    });
+    // ========================================================
 
     function filterAndPaginate() {
         const q = document.getElementById('searchInput').value.toLowerCase();
@@ -476,15 +520,15 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
         document.getElementById('edit-tipe_lembur').value = data.tipe_lembur || 'Non-Project';
         document.getElementById('edit-role').value     = data.role;
         document.getElementById('edit-id_cabang').value = data.id_cabang;
-        document.getElementById('edit-gaji').value     = data.gaji_pokok;
         
-        document.getElementById('edit-status_pajak').value = data.status_pajak || 'TK/0';
-        document.getElementById('edit-saldo_awal_pph21').value = data.saldo_awal_pph21 || 0;
-        document.getElementById('edit-tunj_jabatan').value = data.tunj_jabatan || 0;
-        document.getElementById('edit-tunj_transportasi').value  = data.tunj_transportasi || 0;
-        document.getElementById('edit-tunj_makan').value         = data.tunj_makan || 0;
-        document.getElementById('edit-tunj_kehadiran').value     = data.tunj_kehadiran || 0;
-        document.getElementById('edit-tunj_lainnya').value       = data.tunj_lainnya || 0;
+        document.getElementById('edit-gaji').value               = data.gaji_pokok ? formatRupiah(parseInt(data.gaji_pokok, 10)) : '';
+        document.getElementById('edit-status_pajak').value       = data.status_pajak || 'TK/0';
+        document.getElementById('edit-saldo_awal_pph21').value   = data.saldo_awal_pph21 ? formatRupiah(parseInt(data.saldo_awal_pph21, 10)) : '';
+        document.getElementById('edit-tunj_jabatan').value       = data.tunj_jabatan ? formatRupiah(parseInt(data.tunj_jabatan, 10)) : '';
+        document.getElementById('edit-tunj_transportasi').value  = data.tunj_transportasi ? formatRupiah(parseInt(data.tunj_transportasi, 10)) : '';
+        document.getElementById('edit-tunj_makan').value         = data.tunj_makan ? formatRupiah(parseInt(data.tunj_makan, 10)) : '';
+        document.getElementById('edit-tunj_kehadiran').value     = data.tunj_kehadiran ? formatRupiah(parseInt(data.tunj_kehadiran, 10)) : '';
+        document.getElementById('edit-tunj_lainnya').value       = data.tunj_lainnya ? formatRupiah(parseInt(data.tunj_lainnya, 10)) : '';
 
         document.getElementById('modal-edit').classList.remove('hidden');
         document.getElementById('modal-edit').classList.add('flex');
@@ -497,12 +541,26 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
 
     async function submitTambah(e) {
         e.preventDefault();
+        const form = document.getElementById('form-tambah');
+        
+        // Bersihkan Rp dan titik sebelum disubmit
+        form.querySelectorAll('.currency-input').forEach(input => {
+            input.dataset.raw = input.value;
+            input.value = cleanRupiah(input.value);
+        });
+
         const btn = document.getElementById('btn-submit-tambah');
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Menyimpan...';
         btn.disabled = true;
         const resp = await fetch('<?= BASE_URL ?>/superadmin/simpan_pegawai', {
-            method: 'POST', body: new FormData(document.getElementById('form-tambah'))
+            method: 'POST', body: new FormData(form)
         });
+        
+        // Kembalikan value UI (opsional, in case error)
+        form.querySelectorAll('.currency-input').forEach(input => {
+            input.value = input.dataset.raw;
+        });
+
         const data = await resp.json();
         btn.innerHTML = 'Simpan Pegawai'; btn.disabled = false;
         if (data.status === 'success') {
@@ -531,9 +589,23 @@ $nama_bulan_list = ['','Januari','Februari','Maret','April','Mei','Juni','Juli',
 
     async function submitEdit(e) {
         e.preventDefault();
-        const resp = await fetch('<?= BASE_URL ?>/superadmin/update_pegawai', {
-            method: 'POST', body: new FormData(document.getElementById('form-edit'))
+        const form = document.getElementById('form-edit');
+        
+        // Bersihkan Rp dan titik sebelum disubmit
+        form.querySelectorAll('.currency-input').forEach(input => {
+            input.dataset.raw = input.value;
+            input.value = cleanRupiah(input.value);
         });
+
+        const resp = await fetch('<?= BASE_URL ?>/superadmin/update_pegawai', {
+            method: 'POST', body: new FormData(form)
+        });
+        
+        // Kembalikan value UI (opsional)
+        form.querySelectorAll('.currency-input').forEach(input => {
+            input.value = input.dataset.raw;
+        });
+
         const data = await resp.json();
         if (data.status === 'success') {
             Swal.fire('Berhasil!', data.message, 'success').then(() => location.reload());

@@ -110,6 +110,10 @@
                     Contoh:<br>
                     <code>Tanggal,Keterangan</code><br>
                     <code>2026-08-17,Hari Kemerdekaan</code>
+                    
+                    <a href="<?= BASE_URL ?>/superadmin/download_template_libur" class="inline-block mt-3 px-3 py-1.5 bg-white border border-blue-200 text-blue-700 font-bold rounded-lg hover:bg-blue-50 transition-colors text-xs shadow-sm">
+                        <i class="fa-solid fa-download mr-1"></i> Download Template CSV
+                    </a>
                 </div>
                 
                 <label class="block text-xs font-semibold text-gray-600 mb-1.5">Pilih File CSV <span class="text-red-500">*</span></label>

@@ -62,6 +62,21 @@ class Auth extends Controller {
             $loginResult = $userModel->login($nip, $password, $ip_address);
 
             if ($loginResult['status']) {
+                $role = $loginResult['data']['role'];
+
+                // Cek Mode Pemeliharaan
+                $maintenanceFile = APP_PATH . '/Config/maintenance.json';
+                if (file_exists($maintenanceFile)) {
+                    $maintenanceData = json_decode(file_get_contents($maintenanceFile), true);
+                    if (isset($maintenanceData['is_maintenance']) && $maintenanceData['is_maintenance'] == true) {
+                        if ($role !== 'superadmin') {
+                            $_SESSION['flash_error'] = 'Sistem sedang dalam perbaikan rutin. Akses ditutup sementara.';
+                            header('Location: ' . BASE_URL . '/auth');
+                            exit;
+                        }
+                    }
+                }
+
                 // Set sesi login
                 $_SESSION['user'] = $loginResult['data'];
                 

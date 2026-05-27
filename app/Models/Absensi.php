@@ -329,15 +329,40 @@ class Absensi {
                 }
             }
 
+            $jam_masuk = empty($data['jam_masuk']) ? null : $data['jam_masuk'];
+            $jam_pulang = empty($data['jam_pulang']) ? null : $data['jam_pulang'];
+
+            $foto_update = "";
+            if (!empty($data['foto_masuk_baru'])) { $foto_update .= ", foto_masuk = :foto_masuk"; }
+            if (!empty($data['foto_pulang_baru'])) { $foto_update .= ", foto_pulang = :foto_pulang"; }
+            if (!empty($data['lat_masuk_baru']) && !empty($data['lng_masuk_baru'])) {
+                $foto_update .= ", lat_masuk = :lat_masuk, lng_masuk = :lng_masuk";
+            }
+            if (!empty($data['lat_pulang_baru']) && !empty($data['lng_pulang_baru'])) {
+                $foto_update .= ", lat_pulang = :lat_pulang, lng_pulang = :lng_pulang";
+            }
+
             $stmt = $this->db->prepare("
                 UPDATE absensi 
-                SET jam_masuk = :jam_masuk, jam_pulang = :jam_pulang, status = :status, menit_terlambat = :menit
+                SET jam_masuk = :jam_masuk, jam_pulang = :jam_pulang, status = :status, menit_terlambat = :menit $foto_update
                 WHERE id_absensi = :id
             ");
-            $stmt->bindParam(':jam_masuk', $data['jam_masuk']);
-            $stmt->bindParam(':jam_pulang', $data['jam_pulang']);
+            $stmt->bindParam(':jam_masuk', $jam_masuk);
+            $stmt->bindParam(':jam_pulang', $jam_pulang);
             $stmt->bindParam(':status', $data['status']);
             $stmt->bindParam(':menit', $menit_terlambat);
+            if (!empty($data['foto_masuk_baru'])) { $stmt->bindParam(':foto_masuk', $data['foto_masuk_baru']); }
+            if (!empty($data['foto_pulang_baru'])) { $stmt->bindParam(':foto_pulang', $data['foto_pulang_baru']); }
+            
+            if (!empty($data['lat_masuk_baru']) && !empty($data['lng_masuk_baru'])) {
+                $stmt->bindParam(':lat_masuk', $data['lat_masuk_baru']);
+                $stmt->bindParam(':lng_masuk', $data['lng_masuk_baru']);
+            }
+            if (!empty($data['lat_pulang_baru']) && !empty($data['lng_pulang_baru'])) {
+                $stmt->bindParam(':lat_pulang', $data['lat_pulang_baru']);
+                $stmt->bindParam(':lng_pulang', $data['lng_pulang_baru']);
+            }
+            
             $stmt->bindParam(':id', $data['id_absensi'], PDO::PARAM_INT);
         }
         return $stmt->execute();
